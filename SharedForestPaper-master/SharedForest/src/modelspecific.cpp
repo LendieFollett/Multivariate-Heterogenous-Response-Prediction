@@ -36,6 +36,7 @@ void IterateGibbsWithS(std::vector<Node*>& forest,
 
 }
 
+//Section 3.1 in original BART paper
 void TreeBackfit(std::vector<Node*>& forest,
                  MyData& data,
                  const Opts& opts) {
@@ -44,6 +45,11 @@ void TreeBackfit(std::vector<Node*>& forest,
   Hypers* hypers = forest[0]->hypers;
   for(int t = 0; t < hypers->num_trees; t++) {
     BackFit(forest[t], data);
+      //mat mu_tau = predict_reg(tree, data); pred mean, variance parameters for each row in X for just tree t
+      //vec theta = predict_theta(tree, data); pred theta for each row in X for just tree t
+      //data.mu_hat = data.mu_hat - mu_tau.col(0); what would prediction be without that tree
+      //data.tau_hat = data.tau_hat / mu_tau.col(1);
+      //data.theta_hat = data.theta_hat - theta;
     if(forest[t]->is_leaf || unif_rand() < MH_BD) {
       birth_death(forest[t], data);
     }
@@ -54,6 +60,8 @@ void TreeBackfit(std::vector<Node*>& forest,
     Refit(forest[t], data);
   }
 }
+
+//https://stackoverflow.com/questions/17387617/c-calling-a-function-inside-the-same-functions-definition
 
 arma::mat predict_reg(Node* tree, MyData& data) {
   int N = data.X.n_rows;
@@ -75,14 +83,15 @@ arma::mat predict_reg(Node* tree, arma::mat& X) {
   return out;
 }
 
+//recursive function
 arma::rowvec predict_reg(Node* n, rowvec& x) {
-  if(n->is_leaf) {
+  if(n->is_leaf) { // if it's a leaf / terminal node
     rowvec out = zeros<rowvec>(2);
     out(0) = n->mu;
     out(1) = n->tau;
     return out;
   }
-  if(x(n->var) <= n->val) {
+  if(x(n->var) <= n->val) { //if splitting variable (Xj) is less than cuttoff ()Cj)
     return predict_reg(n->left, x);
   }
   else {
@@ -99,13 +108,14 @@ arma::vec predict_theta(std::vector<Node*> forest, arma::mat& W) {
   return out;
 }
 
+//predict_reg FOREST input
 arma::mat predict_reg(std::vector<Node*> forest, arma::mat& X) {
   int N = forest.size();
   mat out = zeros<mat>(X.n_rows,2);
   out.col(1) = ones<vec>(X.n_rows);
-  for(int n = 0 ; n < N; n++) {
+  for(int n = 0 ; n < N; n++) { // iterate over each tree
     mat mutau = predict_reg(forest[n], X);
-    out.col(0) = out.col(0) + mutau.col(0);
+    out.col(0) = out.col(0) + mutau.col(0); // add each tree's component
     out.col(1) = out.col(1) % mutau.col(1);
   }
   return out;
@@ -131,6 +141,7 @@ arma::vec predict_theta(Node* tree, MyData& data) {
   return out;
 }
 
+//recursive function
 double predict_theta(Node* n, rowvec& w) {
   if(n->is_leaf) {
     return n->theta;
