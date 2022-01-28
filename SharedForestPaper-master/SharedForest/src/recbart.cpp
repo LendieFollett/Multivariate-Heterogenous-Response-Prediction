@@ -8,7 +8,7 @@ List SharedBart(arma::mat& X,
                 arma::vec& Y,
                 arma::mat& W,
                 arma::uvec& delta,
-                arma::mat& X_test, 
+                arma::mat& X_test,
                 arma::mat& W_test,
                 List hypers_,
                 List opts_) {
