@@ -58,6 +58,11 @@ void TreeBackfit(std::vector<Node*>& forest,
     }
     forest[t]->UpdateParams(data);
     Refit(forest[t], data);
+    //mat mu_tau = predict_reg(tree, data);
+    //vec theta = predict_theta(tree, data);
+    //data.mu_hat = data.mu_hat + mu_tau.col(0);
+    //data.tau_hat = data.tau_hat % mu_tau.col(1);
+    //data.theta_hat = data.theta_hat + theta;
   }
 }
 
@@ -178,6 +183,7 @@ void Node::UpdateParams(MyData& data) {
   double a = 1.0/pow(hypers->sigma_theta,2);
   for(int i = 0; i < num_leaves; i++) {
     Node* l      = leafs[i];
+    //LRF: starting here------------------
     double w     = l->ss.sum_v;
     double Y_bar = l->ss.sum_v_Y / l->ss.sum_v;
     double SSE   = l->ss.sum_v_Y_sq - l->ss.sum_v * Y_bar * Y_bar;
@@ -191,10 +197,11 @@ void Node::UpdateParams(MyData& data) {
 
     l->tau = R::rgamma(a_up, 1.0 / b_up);
     l->mu  = mu_up + norm_rand() / sqrt(l->tau * kappa_up);
-
+//LRF: to here,---------------------------------> we won't need (has to do with continuous component)
+//LRF:  starting here, will need to modify to include delta1 and delta2
     double theta_hat = l->ss.sum_Z / (l->ss.n_Z + a);
     double sigma_theta = pow(l->ss.n_Z + a, -0.5);
-    l->theta = theta_hat + norm_rand() * sigma_theta;
+    l->theta = theta_hat + norm_rand() * sigma_theta; // update theta
 
   }
 }
@@ -226,6 +233,7 @@ double Node::LogLT(const MyData& data) {
     double SSE_Z = l->ss.sum_Z_sq - n_Z * R_bar * R_bar;
 
     // Likelihood for regression
+    // LRF: remove this bit
     if(n > 0.0) {
       out += 0.5 * sum_log_tau - n * M_LN_SQRT_2PI
         + 0.5 * std::log(kappa / (kappa + w)) + R::lgammafn(a_tau + 0.5 * n)
@@ -235,6 +243,8 @@ double Node::LogLT(const MyData& data) {
     }
 
     // Likelihood for classification
+    //LRF: this needs to be done for both binary responses (see notes)
+    // ---> update the SuffStat functions
     if(n_Z > 0.0) {
       out += 0.5 * log(a / (n_Z + a)) - n_Z * M_LN_SQRT_2PI
         - 0.5 * (SSE_Z + n_Z * a * R_bar * R_bar / (n_Z + a));
@@ -244,18 +254,22 @@ double Node::LogLT(const MyData& data) {
   return out;
 }
 
+//LRF:will not need first loop
 void Node::UpdateSuffStat(const MyData& data) {
   ResetSuffStat();
+  //LRF ---------------- remove
   int N = data.X.n_rows;
   for(int i = 0; i < N; i++) {
     AddSuffStat(data, i);
   }
+  //LRF ----------------remove
   int M = data.W.n_rows;
   for(int i = 0; i < M; i++) {
     AddSuffStatZ(data,i);
   }
 }
 
+// LRF: This should no longer be needed
 void Node::AddSuffStat(const MyData& data, int i) {
   double Z = data.Y(i) - data.mu_hat(i);
   ss.sum_v   += data.tau_hat(i);
@@ -274,6 +288,8 @@ void Node::AddSuffStat(const MyData& data, int i) {
   }
 }
 
+
+// LRF: There will be two 'Z' elements within data
 void Node::AddSuffStatZ(const MyData& data, int i) {
   double Z = data.Z(i) - data.theta_hat(i);
   ss.sum_Z += Z;
@@ -316,6 +332,7 @@ double cauchy_jacobian(double tau, double sigma_hat) {
 
 }
 
+// LRF: This should no longer be needed
 void Hypers::UpdateTau(MyData& data) {
 
   arma::vec res = data.Y - data.mu_hat;
@@ -360,7 +377,7 @@ void Hypers::UpdateTau(MyData& data) {
 //   }
 // }
 
-
+//http://web.michaelchughes.com/research/sampling-from-truncated-normal
 void UpdateZ(MyData& data) {
 
   int N = data.Z.n_elem;
@@ -369,11 +386,12 @@ void UpdateZ(MyData& data) {
 
     double u = unif_rand();
     double Z = 0.0;
-    if(data.delta(i) == 0) {
-      data.Z(i) = -R::qnorm((1.0 - u) * R::pnorm(data.theta_hat(i), 0.0, 1.0, 1, 0) + u, 0.0, 1.0,1,0);
+    //Sampling inversion of numerical approximation to CDF
+    if(data.delta(i) == 0) { // if Y = 0
+      data.Z(i) = -R::qnorm((1.0 - u) * R::pnorm( data.theta_hat(i), 0.0, 1.0, 1, 0) + u, 0.0, 1.0,1,0);
     }
-    else {
-      data.Z(i) = R::qnorm((1.0 - u) * R::pnorm(-data.theta_hat(i), 0.0, 1.0,1,0) + u, 0.0, 1.0, 1,0);
+    else { // if Y = 1
+      data.Z(i) =  R::qnorm((1.0 - u) * R::pnorm(-data.theta_hat(i), 0.0, 1.0, 1 ,0) + u, 0.0, 1.0, 1,0);
     }
     data.Z(i) = data.Z(i) + data.theta_hat(i);
   }
