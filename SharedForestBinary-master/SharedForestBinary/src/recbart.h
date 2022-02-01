@@ -35,15 +35,6 @@ struct Hypers {
   double beta;
   int num_trees;
 
-  // Regression variance parameters
-  double a_tau;
-  double b_tau;
-  double tau_0;
-  double scale_sigma;
-
-  // Regression mean parameters
-  double kappa;
-
   // Classification parameters
   double theta_01;
   double theta_02;
@@ -88,9 +79,10 @@ struct MyData {
   arma::vec theta_hat1;
   arma::vec theta_hat2;
 
-  MyData(arma::mat& Ww, arma::uvec& deltax1,
+  MyData(arma::mat& Ww, 
+         arma::uvec& deltax1,
          arma::uvec& deltax2,  double theta_01, double theta02)
-  : X(Xx), W(Ww), Y(Yy), delta(deltax) {
+  :  W(Ww), Y(Yy), delta1(deltax1), delta2(deltax2) {
 
     theta_hat1 = theta_01 + arma::zeros<arma::vec>(Ww.n_rows);
     theta_hat2 = theta_02 + arma::zeros<arma::vec>(Ww.n_rows);

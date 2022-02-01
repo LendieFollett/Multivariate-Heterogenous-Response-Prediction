@@ -42,7 +42,7 @@ Hypers::Hypers(const mat& W,
   scale_sigma   = hypers["sigma_hat"];
   sigma_theta1   = hypers["sigma_theta1"];
   sigma_theta2   = hypers["sigma_theta2"];
-  sigma_mu_hat  = pow(kappa, -0.5);
+ 
   theta_01       = hypers["theta_01"];
   theta_012      = hypers["theta_02"];
   tau_0         = pow(scale_sigma, -2.0);
@@ -51,7 +51,6 @@ Hypers::Hypers(const mat& W,
   logs          = log(s);
   this->group   = group;
 
-  sigma_mu_hat  = pow(kappa, -0.5);
   sigma_theta_hat1 = sigma_theta1;
   sigma_theta_hat2 = sigma_theta2;
 
