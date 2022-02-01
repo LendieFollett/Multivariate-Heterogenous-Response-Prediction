@@ -1,20 +1,20 @@
-\name{GammaForest-package}
-\alias{GammaForest-package}
-\alias{GammaForest}
+\name{SharedForestBinary-package}
+\alias{SharedForestBinary-package}
+\alias{SharedForestBinary}
 \docType{package}
-\title{\packageTitle{GammaForest}}
-\description{\packageDescription{GammaForest}}
+\title{\packageTitle{SharedForestBinary}}
+\description{\packageDescription{SharedForestBinary}}
 \details{
-  The DESCRIPTION file: \packageDESCRIPTION{GammaForest}
-  \packageIndices{GammaForest}
+  The DESCRIPTION file: \packageDESCRIPTION{SharedForestBinary}
+  \packageIndices{SharedForest}
 
   This section should provide a more detailed overview of how to use the
   package, including the most important functions.
 }
 \author{
-  \packageAuthor{GammaForest}
-  
-  Maintainer: \packageMaintainer{GammaForest}
+  \packageAuthor{SharedForest}
+
+  Maintainer: \packageMaintainer{SharedForest}
 }
 \references{
   This optional section can contain literature or other references for

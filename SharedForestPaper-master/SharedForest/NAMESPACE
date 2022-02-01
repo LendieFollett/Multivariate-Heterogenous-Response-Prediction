@@ -1,3 +1,0 @@
-useDynLib(SharedForest)
-importFrom(Rcpp, evalCpp)
-exportPattern("^[[:alpha:]]+")
