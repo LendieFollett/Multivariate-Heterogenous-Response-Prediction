@@ -205,40 +205,31 @@ double Node::LogLT(const MyData& data) {
 
   double out = 0.0;
   int num_leaves = leafs.size();
-  double kappa = hypers->kappa;
-  double a_tau = hypers->a_tau;
-  double b_tau = hypers->b_tau;
-  double a     = 1.0 / (hypers->sigma_theta * hypers->sigma_theta);
+  double a1     = 1.0 / (hypers->sigma_theta1 * hypers->sigma_theta1);
+  double a2     = 1.0 / (hypers->sigma_theta2 * hypers->sigma_theta2);
 
   for(int i = 0; i < num_leaves; i++) {
 
     // Define stuff
     Node* l = leafs[i];
-    double w = l->ss.sum_v;
-    double Y_bar = l->ss.sum_v_Y / l->ss.sum_v;
-    double SSE = l->ss.sum_v_Y_sq - Y_bar * Y_bar * l->ss.sum_v;
-    double sum_log_tau = l->ss.sum_log_v;
-    double n = l->ss.n;
-    double n_Z = l->ss.n_Z;
-    double R_bar = l->ss.sum_Z / n_Z;
-    double SSE_Z = l->ss.sum_Z_sq - n_Z * R_bar * R_bar;
+    double n_Z1 = l->ss.n_Z1;
+    double R_bar1 = l->ss.sum_Z1 / n_Z1;
+    double SSE_Z1 = l->ss.sum_Z_sq1 - n_Z1 * R_bar1 * R_bar1;
 
-    // Likelihood for regression
-    // LRF: remove this bit
-    if(n > 0.0) {
-      out += 0.5 * sum_log_tau - n * M_LN_SQRT_2PI
-        + 0.5 * std::log(kappa / (kappa + w)) + R::lgammafn(a_tau + 0.5 * n)
-        - (a_tau + 0.5 * n)
-        * std::log(b_tau + 0.5*SSE + 0.5*kappa*w*Y_bar*Y_bar / (kappa + w))
-        + a_tau * log(b_tau) - R::lgammafn(a_tau);
-    }
+    double n_Z2 = l->ss.n_Z2;
+    double R_bar2 = l->ss.sum_Z2 / n_Z2;
+    double SSE_Z2 = l->ss.sum_Z_sq2 - n_Z2 * R_bar2 * R_bar2;
 
     // Likelihood for classification
     //LRF: this needs to be done for both binary responses (see notes)
     // ---> update the SuffStat functions
-    if(n_Z > 0.0) {
-      out += 0.5 * log(a / (n_Z + a)) - n_Z * M_LN_SQRT_2PI
-        - 0.5 * (SSE_Z + n_Z * a * R_bar * R_bar / (n_Z + a));
+    //NOTE: this assumes Z1 and Z2 have the same dimension
+    if(n_Z1 > 0.0) {
+      out += 0.5 * log(a1 / (n_Z1 + a1)) - n_Z1 * M_LN_SQRT_2PI
+        - 0.5 * (SSE_Z1 + n_Z1 * a1 * R_bar1 * R_bar1 / (n_Z1 + a1)) +
+          0.5 * log(a2 / (n_Z2 + a2)) - n_Z2 * M_LN_SQRT_2PI //LRF
+      - 0.5 * (SSE_Z2 + n_Z2 * a2 * R_bar2 * R_bar2 / (n_Z2 + a2)); //LRF
+
     }
 
   }
@@ -343,33 +334,35 @@ void UpdateZ(MyData& data) {
 
 void UpdateSigmaParam(std::vector<Node*>& forest) {
 
-  mat mu_tau_theta = get_params(forest);
-  vec mu = mu_tau_theta.col(0);
-  vec tau = mu_tau_theta.col(1);
-  vec theta = mu_tau_theta.col(2);
+  mat theta = get_params(forest);
+  vec theta1 = theta.col(0);
+  vec theta2 = theta.col(1);
 
-  double Lambda_kappa = sum(mu % mu % tau);
-  double Lambda_theta = sum(theta % theta);
+  double Lambda_theta = sum(theta1 % theta1);
   double num_leaves = mu.size();
-  double sigma_theta_hat = forest[0]->hypers->sigma_theta_hat;
-  double sigma_mu_hat = forest[0]->hypers->sigma_mu_hat;
+  double sigma_theta_hat = forest[0]->hypers->sigma_theta_hat1;
 
-  // Update kappa
-  //LRF: REMOVE?
-  double kappa_old = forest[0]->hypers->kappa;
-  double kappa_new = Rf_rgamma(1.0 + 0.5 * num_leaves, 1.0 / (0.5 * Lambda_kappa));
-  double loglik_rat = cauchy_jacobian(kappa_new, sigma_mu_hat) - cauchy_jacobian(kappa_old, sigma_mu_hat);
-
-  forest[0]->hypers->kappa = log(unif_rand()) < loglik_rat ? kappa_new : kappa_old;
-
-  // Update sigma_theta
-  //LRF: UPDATE
-  double prec_theta_old = pow(forest[0]->hypers->sigma_theta, -2.0);
+  // Update sigma_theta1
+  //LRF: UPDATED
+  double prec_theta_old = pow(forest[0]->hypers->sigma_theta1, -2.0);
   double prec_theta_new = Rf_rgamma(1.0 + 0.5 * num_leaves, 1.0 / (0.5 * Lambda_theta));
   loglik_rat = cauchy_jacobian(prec_theta_new, sigma_theta_hat) - cauchy_jacobian(prec_theta_old, sigma_theta_hat);
   double prec = log(unif_rand()) < loglik_rat ? prec_theta_new : prec_theta_old;
 
-  forest[0]->hypers->sigma_theta = pow(prec, -0.5);
+  forest[0]->hypers->sigma_theta1 = pow(prec, -0.5);
+
+  double Lambda_theta = sum(theta2 % theta2);
+  double num_leaves = mu.size();
+  double sigma_theta_hat = forest[0]->hypers->sigma_theta_hat2;
+
+  // Update sigma_theta2
+  //LRF: UPDATED
+  double prec_theta_old = pow(forest[0]->hypers->sigma_theta2, -2.0);
+  double prec_theta_new = Rf_rgamma(1.0 + 0.5 * num_leaves, 1.0 / (0.5 * Lambda_theta));
+  loglik_rat = cauchy_jacobian(prec_theta_new, sigma_theta_hat) - cauchy_jacobian(prec_theta_old, sigma_theta_hat);
+  double prec = log(unif_rand()) < loglik_rat ? prec_theta_new : prec_theta_old;
+
+  forest[0]->hypers->sigma_theta2 = pow(prec, -0.5);
 
 }
 
@@ -395,19 +388,16 @@ arma::mat get_params(std::vector<Node*>& forest) {
 }
 
 void get_params(Node* n,
-                std::vector<double>& mu,
-                std::vector<double>& tau,
-                std::vector<double>& theta
+                std::vector<double>& theta1,
+                std::vector<double>& theta2
                 )
 {
   if(n->is_leaf) {
-    mu.push_back(n->mu);
-    tau.push_back(n->tau);
     theta.push_back(n->theta);
   }
   else {
-    get_params(n->left, mu, tau, theta);
-    get_params(n->right, mu, tau, theta);
+    get_params(n->left, theta1, theta2);
+    get_params(n->right, theta1, theta2);
   }
 }
 
