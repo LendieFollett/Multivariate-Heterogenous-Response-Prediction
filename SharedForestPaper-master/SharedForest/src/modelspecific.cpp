@@ -180,28 +180,19 @@ void Node::UpdateParams(MyData& data) {
   UpdateSuffStat(data);
   std::vector<Node*> leafs = leaves(this);
   int num_leaves = leafs.size();
-  double a = 1.0/pow(hypers->sigma_theta,2);
+  double a1 = 1.0/pow(hypers->sigma_theta1,2);
+  double a2 = 1.0/pow(hypers->sigma_theta2,2);
   for(int i = 0; i < num_leaves; i++) {
     Node* l      = leafs[i];
-    //LRF: starting here------------------
-    double w     = l->ss.sum_v;
-    double Y_bar = l->ss.sum_v_Y / l->ss.sum_v;
-    double SSE   = l->ss.sum_v_Y_sq - l->ss.sum_v * Y_bar * Y_bar;
-    double kappa = hypers->kappa;
 
-    double mu_up = l->ss.sum_v_Y / (w + kappa);
-    double kappa_up = kappa + w;
-    double a_up = hypers->a_tau + 0.5 * l->ss.n;
-    double b_up = hypers->b_tau + 0.5 * SSE
-      + 0.5 * kappa * w * Y_bar * Y_bar / (kappa + w);
-
-    l->tau = R::rgamma(a_up, 1.0 / b_up);
-    l->mu  = mu_up + norm_rand() / sqrt(l->tau * kappa_up);
-//LRF: to here,---------------------------------> we won't need (has to do with continuous component)
 //LRF:  starting here, will need to modify to include delta1 and delta2
-    double theta_hat = l->ss.sum_Z / (l->ss.n_Z + a);
-    double sigma_theta = pow(l->ss.n_Z + a, -0.5);
-    l->theta = theta_hat + norm_rand() * sigma_theta; // update theta
+    double theta_hat1 = l->ss.sum_Z1 / (l->ss.n_Z1 + a1);
+    double sigma_theta1 = pow(l->ss.n_Z1 + a1, -0.5);
+    l->theta1 = theta_hat1 + norm_rand() * sigma_theta1; // update theta
+
+    double theta_hat2 = l->ss.sum_Z2 / (l->ss.n_Z2 + a2);
+    double sigma_theta2 = pow(l->ss.n_Z2 + a2, -0.5);
+    l->theta2 = theta_hat2 + norm_rand() * sigma_theta2; // update theta
 
   }
 }
@@ -257,44 +248,24 @@ double Node::LogLT(const MyData& data) {
 //LRF:will not need first loop
 void Node::UpdateSuffStat(const MyData& data) {
   ResetSuffStat();
-  //LRF ---------------- remove
-  int N = data.X.n_rows;
-  for(int i = 0; i < N; i++) {
-    AddSuffStat(data, i);
-  }
-  //LRF ----------------remove
-  int M = data.W.n_rows;
+  int M = data.W.n_rows; //LRF: allow W1 and W2 of differing dimensions? or assume same...
   for(int i = 0; i < M; i++) {
     AddSuffStatZ(data,i);
-  }
-}
-
-// LRF: This should no longer be needed
-void Node::AddSuffStat(const MyData& data, int i) {
-  double Z = data.Y(i) - data.mu_hat(i);
-  ss.sum_v   += data.tau_hat(i);
-  ss.sum_v_Y += Z * data.tau_hat(i);
-  ss.sum_v_Y_sq += Z * Z * data.tau_hat(i);
-  ss.sum_log_v += std::log(data.tau_hat(i));
-  ss.n += 1.0;
-
-  if(!is_leaf) {
-    double x = data.X(i,var);
-    if(x <= val) {
-      left->AddSuffStat(data,i);
-    } else {
-      right->AddSuffStat(data,i);
-    }
   }
 }
 
 
 // LRF: There will be two 'Z' elements within data
 void Node::AddSuffStatZ(const MyData& data, int i) {
-  double Z = data.Z(i) - data.theta_hat(i);
-  ss.sum_Z += Z;
-  ss.sum_Z_sq += Z * Z;
-  ss.n_Z += 1.0;
+  double Z1 = data.Z1(i) - data.theta_hat1(i);
+  double Z2 = data.Z2(i) - data.theta_hat2(i);
+  ss.sum_Z1 += Z1;
+  ss.sum_Z_sq1 += Z1 * Z1;
+  ss.n_Z1 += 1.0;
+
+  ss.sum_Z2 += Z2;
+  ss.sum_Z2_sq += Z2 * Z2;
+  ss.n_Z2 += 1.0;
 
   if(!is_leaf) {
     double w = data.W(i,var);
@@ -307,14 +278,12 @@ void Node::AddSuffStatZ(const MyData& data, int i) {
 }
 
 void Node::ResetSuffStat() {
-  ss.sum_v_Y    = 0.0;
-  ss.sum_v_Y_sq = 0.0;
-  ss.sum_v      = 0.0;
-  ss.sum_log_v  = 0.0;
-  ss.n          = 0.0;
-  ss.sum_Z      = 0.0;
-  ss.sum_Z_sq   = 0.0;
-  ss.n_Z        = 0.0;
+  ss.sum_Z1      = 0.0;
+  ss.sum_Z_sq1   = 0.0;
+  ss.n_Z1        = 0.0;
+  ss.sum_Z2      = 0.0;
+  ss.sum_Z_sq2   = 0.0;
+  ss.n_Z2        = 0.0;
   if(!is_leaf) {
     left->ResetSuffStat();
     right->ResetSuffStat();
@@ -329,36 +298,6 @@ double cauchy_jacobian(double tau, double sigma_hat) {
   out = out - M_LN2 - 3.0 / 2.0 * log(tau);
 
   return out;
-
-}
-
-// LRF: This should no longer be needed
-void Hypers::UpdateTau(MyData& data) {
-
-  arma::vec res = data.Y - data.mu_hat;
-  data.tau_hat = data.tau_hat / tau_0;
-
-  double SSE = sum(data.tau_hat % res % res);
-  double n = res.size();
-
-  double shape = 0.5 * n + 1.0;
-  double scale = 2.0 / SSE;
-  double sigma_prop = pow(Rf_rgamma(shape, scale), -0.5);
-  double sigma_old = pow(tau_0, -0.5);
-
-  double tau_prop = pow(sigma_prop, -2.0);
-
-  double loglik_rat = cauchy_jacobian(tau_prop, scale_sigma) -
-    cauchy_jacobian(tau_0, scale_sigma);
-
-  tau_0 = log(unif_rand()) < loglik_rat ? tau_prop : tau_0;
-
-  // SigmaLoglik* loglik = new SigmaLoglik(n, SSE, scale_sigma);
-  // double sigma_0 = pow(tau_0, -0.5);
-  // sigma_0 = slice_sampler(sigma_0, loglik, 1.0, 0.0, 1000.0);
-  // tau_0 = pow(sigma_0, -2.0);
-
-  data.tau_hat = data.tau_hat * tau_0;
 
 }
 
@@ -380,20 +319,25 @@ void Hypers::UpdateTau(MyData& data) {
 //http://web.michaelchughes.com/research/sampling-from-truncated-normal
 void UpdateZ(MyData& data) {
 
-  int N = data.Z.n_elem;
+  int N = data.Z1.n_elem; // LRF: again, assume same dimensions Z1 vs Z2?
 
   for(int i = 0; i < N; i++) {
 
-    double u = unif_rand();
-    double Z = 0.0;
+    double u1 = unif_rand();
+    double u2 = unif_rand();
+    double Z1 = 0.0;
+    double Z2 = 0.0;
     //Sampling inversion of numerical approximation to CDF
     if(data.delta(i) == 0) { // if Y = 0
-      data.Z(i) = -R::qnorm((1.0 - u) * R::pnorm( data.theta_hat(i), 0.0, 1.0, 1, 0) + u, 0.0, 1.0,1,0);
+      data.Z1(i) = -R::qnorm((1.0 - u1) * R::pnorm( data.theta_hat1(i), 0.0, 1.0, 1, 0) + u1, 0.0, 1.0,1,0);
+      data.Z2(i) = -R::qnorm((1.0 - u2) * R::pnorm( data.theta_hat2(i), 0.0, 1.0, 1, 0) + u2, 0.0, 1.0,1,0);
     }
     else { // if Y = 1
-      data.Z(i) =  R::qnorm((1.0 - u) * R::pnorm(-data.theta_hat(i), 0.0, 1.0, 1 ,0) + u, 0.0, 1.0, 1,0);
+      data.Z1(i) =  R::qnorm((1.0 - u1) * R::pnorm(-data.theta_hat1(i), 0.0, 1.0, 1 ,0) + u1, 0.0, 1.0, 1,0);
+      data.Z2(i) =  R::qnorm((1.0 - u2) * R::pnorm(-data.theta_hat2(i), 0.0, 1.0, 1 ,0) + u2, 0.0, 1.0, 1,0);
     }
-    data.Z(i) = data.Z(i) + data.theta_hat(i);
+    data.Z1(i) = data.Z1(i) + data.theta_hat1(i);
+    data.Z2(i) = data.Z2(i) + data.theta_hat2(i);
   }
 }
 
@@ -411,6 +355,7 @@ void UpdateSigmaParam(std::vector<Node*>& forest) {
   double sigma_mu_hat = forest[0]->hypers->sigma_mu_hat;
 
   // Update kappa
+  //LRF: REMOVE?
   double kappa_old = forest[0]->hypers->kappa;
   double kappa_new = Rf_rgamma(1.0 + 0.5 * num_leaves, 1.0 / (0.5 * Lambda_kappa));
   double loglik_rat = cauchy_jacobian(kappa_new, sigma_mu_hat) - cauchy_jacobian(kappa_old, sigma_mu_hat);
@@ -418,6 +363,7 @@ void UpdateSigmaParam(std::vector<Node*>& forest) {
   forest[0]->hypers->kappa = log(unif_rand()) < loglik_rat ? kappa_new : kappa_old;
 
   // Update sigma_theta
+  //LRF: UPDATE
   double prec_theta_old = pow(forest[0]->hypers->sigma_theta, -2.0);
   double prec_theta_new = Rf_rgamma(1.0 + 0.5 * num_leaves, 1.0 / (0.5 * Lambda_theta));
   loglik_rat = cauchy_jacobian(prec_theta_new, sigma_theta_hat) - cauchy_jacobian(prec_theta_old, sigma_theta_hat);
@@ -429,23 +375,22 @@ void UpdateSigmaParam(std::vector<Node*>& forest) {
 
 
 arma::mat get_params(std::vector<Node*>& forest) {
-  std::vector<double> mu(0);
-  std::vector<double> tau(0);
-  std::vector<double> theta(0);
+  std::vector<double> theta1(0);
+  std::vector<double> theta2(0);
   int num_tree = forest.size();
   for(int t = 0; t < num_tree; t++) {
-    get_params(forest[t], mu, tau, theta);
+    get_params(forest[t],  theta1, theta2);
   }
 
-  int num_leaves = mu.size();
-  mat mu_tau_theta = zeros<mat>(num_leaves, 3);
+  int num_leaves = theta1.size();
+  mat theta = zeros<mat>(num_leaves, 2); // LRF: 2 for theta1, theta2
   for(int i = 0; i < num_leaves; i++) {
-    mu_tau_theta(i,0) = mu[i];
-    mu_tau_theta(i,1) = tau[i];
-    mu_tau_theta(i,2) = theta[i];
+    theta(i,0) = theta1[i];
+    theta(i,1) = theta2[i];
+
   }
 
-  return mu_tau_theta;
+  return theta;
 
 }
 
