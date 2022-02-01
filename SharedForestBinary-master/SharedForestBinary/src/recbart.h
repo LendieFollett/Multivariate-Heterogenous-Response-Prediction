@@ -25,7 +25,7 @@
 struct Hypers;
 struct Node;
 struct MyData;
-struct Cluster;
+
 
 struct Hypers {
 
@@ -224,8 +224,7 @@ void UpdateS(std::vector<Node*>& forest);
 void UpdateZ(MyData& data);
 void UpdateSigmaParam(std::vector<Node*>& forest);
 arma::mat get_params(std::vector<Node*>& forest);
-void get_params(Node* n, std::vector<double>& mu,
-                std::vector<double>& tau, std::vector<double>& theta);
+void get_params(Node* n, std::vector<double>& theta1,std::vector<double>& theta2);
 
 
 /* arma::vec loglik_data(const arma::vec& Y, const arma::vec& rho, const Hypers& hypers); */

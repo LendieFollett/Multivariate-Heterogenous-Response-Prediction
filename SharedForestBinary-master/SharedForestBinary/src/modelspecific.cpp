@@ -249,7 +249,7 @@ void Node::AddSuffStatZ(const MyData& data, int i) {
   ss.n_Z1 += 1.0;
 
   ss.sum_Z2 += Z2;
-  ss.sum_Z2_sq += Z2 * Z2;
+  ss.sum_Z_sq2 += Z2 * Z2;
   ss.n_Z2 += 1.0;
 
   if(!is_leaf) {
@@ -313,14 +313,19 @@ void UpdateZ(MyData& data) {
     double Z1 = 0.0;
     double Z2 = 0.0;
     //Sampling inversion of numerical approximation to CDF
-    if(data.delta(i) == 0) { // if Y = 0
+    if(data.delta1(i) == 0) { // if Y = 0
       data.Z1(i) = -R::qnorm((1.0 - u1) * R::pnorm( data.theta_hat1(i), 0.0, 1.0, 1, 0) + u1, 0.0, 1.0,1,0);
-      data.Z2(i) = -R::qnorm((1.0 - u2) * R::pnorm( data.theta_hat2(i), 0.0, 1.0, 1, 0) + u2, 0.0, 1.0,1,0);
     }
     else { // if Y = 1
       data.Z1(i) =  R::qnorm((1.0 - u1) * R::pnorm(-data.theta_hat1(i), 0.0, 1.0, 1 ,0) + u1, 0.0, 1.0, 1,0);
+    }
+    if(data.delta2(i) == 0) { // if Y = 0
+      data.Z2(i) = -R::qnorm((1.0 - u2) * R::pnorm( data.theta_hat2(i), 0.0, 1.0, 1, 0) + u2, 0.0, 1.0,1,0);
+    }
+    else { // if Y = 1
       data.Z2(i) =  R::qnorm((1.0 - u2) * R::pnorm(-data.theta_hat2(i), 0.0, 1.0, 1 ,0) + u2, 0.0, 1.0, 1,0);
     }
+    
     data.Z1(i) = data.Z1(i) + data.theta_hat1(i);
     data.Z2(i) = data.Z2(i) + data.theta_hat2(i);
   }
@@ -333,27 +338,27 @@ void UpdateSigmaParam(std::vector<Node*>& forest) {
   vec theta2 = theta.col(1);
 
   double Lambda_theta = sum(theta1 % theta1);
-  double num_leaves = mu.size();
+  double num_leaves = theta1.size();
   double sigma_theta_hat = forest[0]->hypers->sigma_theta_hat1;
 
   // Update sigma_theta1
   //LRF: UPDATED
   double prec_theta_old = pow(forest[0]->hypers->sigma_theta1, -2.0);
   double prec_theta_new = Rf_rgamma(1.0 + 0.5 * num_leaves, 1.0 / (0.5 * Lambda_theta));
-  loglik_rat = cauchy_jacobian(prec_theta_new, sigma_theta_hat) - cauchy_jacobian(prec_theta_old, sigma_theta_hat);
+  double loglik_rat = cauchy_jacobian(prec_theta_new, sigma_theta_hat) - cauchy_jacobian(prec_theta_old, sigma_theta_hat);
   double prec = log(unif_rand()) < loglik_rat ? prec_theta_new : prec_theta_old;
 
   forest[0]->hypers->sigma_theta1 = pow(prec, -0.5);
 
-  double Lambda_theta = sum(theta2 % theta2);
-  double num_leaves = mu.size();
-  double sigma_theta_hat = forest[0]->hypers->sigma_theta_hat2;
+  Lambda_theta = sum(theta2 % theta2);
+  num_leaves = theta2.size();
+  sigma_theta_hat = forest[0]->hypers->sigma_theta_hat2;
 
   // Update sigma_theta2
   //LRF: UPDATED
   double prec_theta_old = pow(forest[0]->hypers->sigma_theta2, -2.0);
   double prec_theta_new = Rf_rgamma(1.0 + 0.5 * num_leaves, 1.0 / (0.5 * Lambda_theta));
-  loglik_rat = cauchy_jacobian(prec_theta_new, sigma_theta_hat) - cauchy_jacobian(prec_theta_old, sigma_theta_hat);
+  double loglik_rat = cauchy_jacobian(prec_theta_new, sigma_theta_hat) - cauchy_jacobian(prec_theta_old, sigma_theta_hat);
   double prec = log(unif_rand()) < loglik_rat ? prec_theta_new : prec_theta_old;
 
   forest[0]->hypers->sigma_theta2 = pow(prec, -0.5);
@@ -394,135 +399,3 @@ void get_params(Node* n,
     get_params(n->right, theta1, theta2);
   }
 }
-
-Cluster::Cluster(const arma::uvec& cluster, const arma::uvec& clusterw) {
-
-  this->cluster = cluster;
-  this->clusterw = clusterw;
-
-  int num_cluster = cluster.max() + 1;
-  int num_clusterw = clusterw.max() + 1;
-  V_mu = zeros<vec>(num_cluster);
-  V_theta = zeros<vec>(num_clusterw);
-  V_tau = ones<vec>(num_cluster);
-
-  sigma_V_mu    = 0.2 * exp_rand();
-  sigma_V_theta = 0.2 * exp_rand();
-  a_V_tau       = 100.0;
-
-  cluster_to_idx.resize(num_cluster);
-  for(int i = 0; i < num_cluster; i++) {
-    cluster_to_idx[i] = find(cluster == i);
-  }
-  clusterw_to_idx.resize(num_clusterw);
-  for(int i = 0; i < num_clusterw; i++) {
-    clusterw_to_idx[i] = find(clusterw == i);
-  }
-}
-
-void UpdateVmu(Cluster& cluster, MyData& data) {
-
-  int nclust = cluster.V_mu.size();
-  double a = pow(cluster.sigma_V_mu, -2.0);
-
-  for(int i = 0; i < nclust; i++) {
-
-    double sum_tau = 0.0;
-    double sum_tau_R = 0.0;
-    int clust_size = cluster.cluster_to_idx[i].size();
-
-    for(int j = 0; j < clust_size; j++) {
-      int n = cluster.cluster_to_idx[i](j);
-      sum_tau += data.tau_hat(n);
-      data.mu_hat(n) = data.mu_hat(n) - cluster.V_mu(i);
-      sum_tau_R += data.tau_hat(n) * (data.Y(n) - data.mu_hat(n));
-    }
-
-    double mu_up = sum_tau_R / (sum_tau + a);
-    double sigma_up = pow(sum_tau + a, -0.5);
-    cluster.V_mu(i) = mu_up + sigma_up * norm_rand();
-
-    for(int j = 0; j < clust_size; j++) {
-      int n = cluster.cluster_to_idx[i](j);
-      data.mu_hat(n) = data.mu_hat(n) + cluster.V_mu(i);
-    }
-  }
-}
-
-void UpdateVtheta(Cluster& cluster, MyData& data) {
-
-  int nclust = cluster.V_theta.size();
-  double a = pow(cluster.sigma_V_theta, -2.0);
-
-  for(int i = 0; i < nclust; i++) {
-    double sum_tau = 0.0;
-    double sum_R = 0.0;
-    int clust_size = cluster.clusterw_to_idx[i].size();
-
-    for(int j = 0; j < clust_size; j++) {
-      int n = cluster.clusterw_to_idx[i](j);
-      sum_tau += 1;
-      data.theta_hat(n) = data.theta_hat(n) - cluster.V_theta(i);
-      sum_R += data.Z(n) - data.theta_hat(n);
-    }
-
-    double mu_up = sum_R / (sum_tau + a);
-    double sigma_up = pow(sum_tau + a, -0.5);
-    cluster.V_theta(i) = mu_up + sigma_up * norm_rand();
-
-    for(int j = 0; j < clust_size; j++) {
-      int n = cluster.clusterw_to_idx[i](j);
-      data.theta_hat(n) = data.theta_hat(n) + cluster.V_theta(i);
-    }
-  }
-}
-
-void UpdateVtau(Cluster& cluster, MyData& data) {
-  int nclust = cluster.V_tau.size();
-
-  for(int i = 0; i < nclust; i++) {
-    double ns = 0.0;
-    double SS = 0.0;
-    int clust_size = cluster.cluster_to_idx[i].size();
-
-    for(int j = 0; j < clust_size; j++) {
-      int n = cluster.cluster_to_idx[i](j);
-      ns += 1.0;
-      double a = data.tau_hat(n);
-      double b = cluster.V_tau(i);
-      double c = a + b;
-      data.tau_hat(n) = data.tau_hat(n) / cluster.V_tau(i);
-      SS += data.tau_hat(n) * pow(data.Y(n) - data.mu_hat(n), 2.0);
-    }
-    cluster.V_tau(i) = R::rgamma(cluster.a_V_tau + 0.5 * ns, 1.0 / (cluster.a_V_tau + 0.5 * SS));
-    for(int j = 0; j < clust_size; j++) {
-      int n = cluster.cluster_to_idx[i](j);
-      data.tau_hat(n) = data.tau_hat(n) * cluster.V_tau(i);
-    }
-  }
-}
-
-void UpdateShape(Cluster& cluster) {
-  ShapeLoglik shape(sum(log(cluster.V_tau)),
-                    sum(cluster.V_tau),
-                    cluster.V_tau.size());
-
-  double sigma = 1.0 / sqrt(cluster.a_V_tau);
-  cluster.a_V_tau = pow(slice_sampler(sigma, &shape, 1.0, 0.0, 10000.0), -2.0);
-
-}
-void UpdateVars(Cluster& cluster, MyData& data) {
-
-  double N_mu = cluster.V_mu.size();
-  double N_theta = cluster.V_theta.size();
-  double SSE_mu = (N_mu - 1.0) * var(cluster.V_mu);
-  double SSE_theta = (N_theta - 1.0) * var(cluster.V_theta);
-
-  double tau_mu = R::rgamma(0.5 * N_mu, 2.0 / SSE_mu);
-  double tau_theta = R::rgamma(0.5 * N_theta, 2.0 / SSE_theta);
-
-  cluster.sigma_V_mu = pow(tau_mu, -0.5);
-  cluster.sigma_V_theta = pow(tau_theta, -0.5);
-
-}
-
