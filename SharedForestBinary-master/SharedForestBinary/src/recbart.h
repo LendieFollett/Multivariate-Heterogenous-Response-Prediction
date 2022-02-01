@@ -81,19 +81,24 @@ struct MyData {
 
   MyData(arma::mat& Ww, 
          arma::uvec& deltax1,
-         arma::uvec& deltax2,  double theta_01, double theta02)
-  :  W(Ww), Y(Yy), delta1(deltax1), delta2(deltax2) {
+         arma::uvec& deltax2,  double theta_01, double theta_02)
+  :  W(Ww), delta2(deltax1), delta2(deltax2) {
 
     theta_hat1 = theta_01 + arma::zeros<arma::vec>(Ww.n_rows);
     theta_hat2 = theta_02 + arma::zeros<arma::vec>(Ww.n_rows);
     Z1 = arma::zeros<arma::vec>(delta1.n_elem);
     Z2 = arma::zeros<arma::vec>(delta2.n_elem);
 
-    for(int i = 0; i < delta.n_elem; i++) {
-      if(delta(i) == 0) {
-        Z(i) = randnt(theta_hat1(i), 1.0, R_NegInf, 0.0);
+    for(int i = 0; i < delta1.n_elem; i++) {//lrf assuming same dim
+      if(delta1(i) == 0) {
+        Z1(i) = randnt(theta_hat1(i), 1.0, R_NegInf, 0.0);
       } else {
-        Z(i) = randnt(theta_hat2(i), 1.0, 0.0, R_PosInf);
+        Z1(i) = randnt(theta_hat1(i), 1.0, 0.0, R_PosInf);
+      }
+      if(delta2(i) == 0) {
+        Z2(i) = randnt(theta_hat2(i), 1.0, R_NegInf, 0.0);
+      } else {
+        Z2(i) = randnt(theta_hat2(i), 1.0, 0.0, R_PosInf);
       }
     }
   }
@@ -109,7 +114,7 @@ struct SuffStats {
   double sum_Z_sq2;
   double n_Z2;
 
-SuffStats() : sum_v_Y(0.0), sum_v_Y_sq(0.0), sum_v(0.0), sum_log_v(0.0), n(0.0){;}
+SuffStats() : sum_Z1(0.0), sum_Z_sq1(0.0), sum_Z2(0.0), sum_Z_sq2(0.0),  n_Z1(0.0), n_Z2(0.0){;}
 
 };
 

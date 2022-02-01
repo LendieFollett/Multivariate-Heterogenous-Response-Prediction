@@ -33,19 +33,17 @@ Hypers::Hypers(const mat& W,
   beta          = hypers["beta"];
   gamma         = hypers["gamma"];
   num_trees     = hypers["num_tree"];
-  a_tau         = hypers["a_tau"];
-  b_tau         = hypers["b_tau"];
-  kappa         = hypers["kappa"];
+
   alpha_scale   = hypers["alpha_scale"];
   alpha_shape_1 = hypers["alpha_shape_1"];
   alpha_shape_2 = hypers["alpha_shape_2"];
-  scale_sigma   = hypers["sigma_hat"];
+
   sigma_theta1   = hypers["sigma_theta1"];
   sigma_theta2   = hypers["sigma_theta2"];
  
   theta_01       = hypers["theta_01"];
-  theta_012      = hypers["theta_02"];
-  tau_0         = pow(scale_sigma, -2.0);
+  theta_02      = hypers["theta_02"];
+
   num_groups    = group.max() + 1;
   s             = ones<vec>(num_groups)/((double)num_groups);
   logs          = log(s);
