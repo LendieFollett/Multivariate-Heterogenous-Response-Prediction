@@ -32,7 +32,8 @@ Hypers <- function(W,delta1, delta2, group = NULL,
                    alpha_shape_1 = 0.5,
                    alpha_shape_2 = 1,
                    sigma_hat = NULL, ## Determines tau_0 and its prior scale
-                   sigma_theta = NULL,
+                   sigma_theta1 = NULL,
+                   sigma_theta2 = NULL,
                    theta_0 = NULL,
                    shape = 1) {
 
@@ -73,7 +74,8 @@ Hypers <- function(W,delta1, delta2, group = NULL,
   out$alpha_shape_1                    <- alpha_shape_1
   out$alpha_shape_2                    <- alpha_shape_2
   out$sigma_hat                        <- sigma_hat
-  out$sigma_theta                      <- 3.0 / (k_theta * sqrt(num_tree))
+  out$sigma_theta1                      <- 3.0 / (k_theta * sqrt(num_tree))
+  out$sigma_theta2                      <- 3.0 / (k_theta * sqrt(num_tree))
   out$theta_0                          <- theta_0
   out$group                            <- group
 
