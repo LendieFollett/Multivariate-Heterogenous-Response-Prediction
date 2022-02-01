@@ -45,8 +45,10 @@ struct Hypers {
   double kappa;
 
   // Classification parameters
-  double theta_0;
-  double sigma_theta;
+  double theta_01;
+  double theta_02;
+  double sigma_theta1;
+  double sigma_theta2;
 
   // Alpha hyperparameters
   double alpha_scale;
@@ -54,8 +56,9 @@ struct Hypers {
   double alpha_shape_2;
 
   // Variance hyperparameters
-  double sigma_theta_hat;
-  double sigma_mu_hat;
+  double sigma_theta_hat1;
+  double sigma_theta_hat2;
+
 
   // splitting prob parameters
   arma::vec s;
@@ -105,14 +108,14 @@ struct MyData {
 };
 
 struct SuffStats {
-  double sum_v_Y;
-  double sum_v_Y_sq;
-  double sum_v;
-  double sum_log_v;
-  double n;
-  double sum_Z;
-  double sum_Z_sq;
-  double n_Z;
+
+  double sum_Z1;
+  double sum_Z_sq1;
+  double n_Z1;
+  
+  double sum_Z2;
+  double sum_Z_sq2;
+  double n_Z2;
 
 SuffStats() : sum_v_Y(0.0), sum_v_Y_sq(0.0), sum_v(0.0), sum_log_v(0.0), n(0.0){;}
 
@@ -133,9 +136,9 @@ struct Node {
   int depth;
 
   // Leaf parameters
-  double mu;
-  double tau;
-  double theta;
+  
+  double theta1;
+  double theta2;
 
   SuffStats ss;
 
@@ -151,7 +154,6 @@ struct Node {
   double LogLT(const MyData& data);
   void UpdateSuffStat(const MyData& data);
   void ResetSuffStat();
-  void AddSuffStat(const MyData& data, int i);
   void AddSuffStatZ(const MyData& data, int i);
 
   Node(Hypers* hypers_);
@@ -192,24 +194,7 @@ struct Opts {
   }
 };
 
-struct Cluster {
-  arma::vec V_mu;
-  arma::vec V_theta;
-  arma::vec V_tau;
 
-  std::vector<arma::uvec> cluster_to_idx;
-  arma::uvec cluster;
-  std::vector<arma::uvec> clusterw_to_idx;
-  arma::uvec clusterw;
-
-
-  double sigma_V_mu;
-  double sigma_V_theta;
-  double a_V_tau;
-
-  Cluster(const arma::uvec& cluster, const arma::uvec& clusterw);
-
-};
 
 // Node functions
 double growth_prior(Node* node);
@@ -261,20 +246,11 @@ void BackFit(Node* tree, MyData& data);
 void Refit(Node* tree, MyData& data);
 
 // Predictions
-arma::mat predict_reg(Node* tree, MyData& data);
-arma::mat predict_reg(Node* tree, arma::mat& X);
-arma::rowvec predict_reg(Node* n, arma::rowvec& x);
-arma::mat predict_reg(std::vector<Node*> forest, arma::mat& X);
-arma::vec predict_theta(Node* tree, MyData& data);
-arma::vec predict_theta(Node* tree, arma::mat& W);
-double predict_theta(Node* tree, arma::rowvec& x);
-arma::vec predict_theta(std::vector<Node*> forest, arma::mat& W);
 
-// Random effects
-void UpdateVtheta(Cluster& cluster, MyData& data);
-void UpdateVmu(Cluster& cluster, MyData& data);
-void UpdateVars(Cluster& cluster, MyData& data);
-void UpdateVtau(Cluster& cluster, MyData& data);
-void UpdateShape(Cluster& cluster);
+arma::mat predict_theta(Node* tree, MyData& data);
+arma::mat predict_theta(Node* tree, arma::mat& W);
+arma::rowvec predict_theta(Node* tree, arma::rowvec& x);
+arma::mat predict_theta(std::vector<Node*> forest, arma::mat& W);
+
 
 #endif
