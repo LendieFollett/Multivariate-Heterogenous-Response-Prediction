@@ -77,29 +77,28 @@ struct Hypers {
 };
 
 struct MyData {
-  arma::mat X;
   arma::mat W;
-  arma::vec Y;
-  arma::vec Z;
-  arma::uvec delta;
-  arma::vec mu_hat;
-  arma::vec tau_hat;
-  arma::vec theta_hat;
+  arma::uvec delta1;
+  arma::uvec delta2;
+  arma::vec Z1;
+  arma::vec Z2;
+  arma::vec theta_hat1;
+  arma::vec theta_hat2;
 
-  MyData(arma::mat& Xx, arma::mat& Ww, arma::vec& Yy,
-         arma::uvec& deltax, double tau_0, double theta_0)
+  MyData(arma::mat& Ww, arma::uvec& deltax1,
+         arma::uvec& deltax2,  double theta_01, double theta02)
   : X(Xx), W(Ww), Y(Yy), delta(deltax) {
 
-    mu_hat = arma::zeros<arma::vec>(Xx.n_rows);
-    tau_hat = tau_0 * arma::ones<arma::vec>(Xx.n_rows);
-    theta_hat = theta_0 + arma::zeros<arma::vec>(Ww.n_rows);
-    Z = arma::zeros<arma::vec>(delta.n_elem);
+    theta_hat1 = theta_01 + arma::zeros<arma::vec>(Ww.n_rows);
+    theta_hat2 = theta_02 + arma::zeros<arma::vec>(Ww.n_rows);
+    Z1 = arma::zeros<arma::vec>(delta1.n_elem);
+    Z2 = arma::zeros<arma::vec>(delta2.n_elem);
 
     for(int i = 0; i < delta.n_elem; i++) {
       if(delta(i) == 0) {
-        Z(i) = randnt(theta_hat(i), 1.0, R_NegInf, 0.0);
+        Z(i) = randnt(theta_hat1(i), 1.0, R_NegInf, 0.0);
       } else {
-        Z(i) = randnt(theta_hat(i), 1.0, 0.0, R_PosInf);
+        Z(i) = randnt(theta_hat2(i), 1.0, 0.0, R_PosInf);
       }
     }
   }
