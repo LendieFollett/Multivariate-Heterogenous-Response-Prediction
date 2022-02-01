@@ -2,30 +2,26 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 rlgam <- function(shape) {
-    .Call('_SharedForest_rlgam', PACKAGE = 'SharedForest', shape)
+    .Call('_SharedForestBinary_rlgam', PACKAGE = 'SharedForestBinary', shape)
 }
 
 rcpparma_hello_world <- function() {
-    .Call('_SharedForest_rcpparma_hello_world', PACKAGE = 'SharedForest')
+    .Call('_SharedForestBinary_rcpparma_hello_world', PACKAGE = 'SharedForestBinary')
 }
 
 rcpparma_outerproduct <- function(x) {
-    .Call('_SharedForest_rcpparma_outerproduct', PACKAGE = 'SharedForest', x)
+    .Call('_SharedForestBinary_rcpparma_outerproduct', PACKAGE = 'SharedForestBinary', x)
 }
 
 rcpparma_innerproduct <- function(x) {
-    .Call('_SharedForest_rcpparma_innerproduct', PACKAGE = 'SharedForest', x)
+    .Call('_SharedForestBinary_rcpparma_innerproduct', PACKAGE = 'SharedForestBinary', x)
 }
 
 rcpparma_bothproducts <- function(x) {
-    .Call('_SharedForest_rcpparma_bothproducts', PACKAGE = 'SharedForest', x)
+    .Call('_SharedForestBinary_rcpparma_bothproducts', PACKAGE = 'SharedForestBinary', x)
 }
 
-SharedBart <- function(X, Y, W, delta, X_test, W_test, hypers_, opts_) {
-    .Call('_SharedForest_SharedBart', PACKAGE = 'SharedForest', X, Y, W, delta, X_test, W_test, hypers_, opts_)
-}
-
-MixedBart <- function(X, Y, W, delta, cluster, clusterw, hypers_, opts_) {
-    .Call('_SharedForest_MixedBart', PACKAGE = 'SharedForest', X, Y, W, delta, cluster, clusterw, hypers_, opts_)
+SharedBart <- function(W, delta1, delta2, W_test, hypers_, opts_) {
+    .Call('_SharedForestBinary_SharedBart', PACKAGE = 'SharedForestBinary', W, delta1, delta2, W_test, hypers_, opts_)
 }
 

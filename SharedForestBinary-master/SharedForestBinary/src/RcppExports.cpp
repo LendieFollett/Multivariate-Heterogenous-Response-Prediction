@@ -8,7 +8,7 @@ using namespace Rcpp;
 
 // rlgam
 double rlgam(double shape);
-RcppExport SEXP _SharedForest_rlgam(SEXP shapeSEXP) {
+RcppExport SEXP _SharedForestBinary_rlgam(SEXP shapeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -19,7 +19,7 @@ END_RCPP
 }
 // rcpparma_hello_world
 arma::mat rcpparma_hello_world();
-RcppExport SEXP _SharedForest_rcpparma_hello_world() {
+RcppExport SEXP _SharedForestBinary_rcpparma_hello_world() {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -29,7 +29,7 @@ END_RCPP
 }
 // rcpparma_outerproduct
 arma::mat rcpparma_outerproduct(const arma::colvec& x);
-RcppExport SEXP _SharedForest_rcpparma_outerproduct(SEXP xSEXP) {
+RcppExport SEXP _SharedForestBinary_rcpparma_outerproduct(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -40,7 +40,7 @@ END_RCPP
 }
 // rcpparma_innerproduct
 double rcpparma_innerproduct(const arma::colvec& x);
-RcppExport SEXP _SharedForest_rcpparma_innerproduct(SEXP xSEXP) {
+RcppExport SEXP _SharedForestBinary_rcpparma_innerproduct(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -51,7 +51,7 @@ END_RCPP
 }
 // rcpparma_bothproducts
 Rcpp::List rcpparma_bothproducts(const arma::colvec& x);
-RcppExport SEXP _SharedForest_rcpparma_bothproducts(SEXP xSEXP) {
+RcppExport SEXP _SharedForestBinary_rcpparma_bothproducts(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -61,54 +61,33 @@ BEGIN_RCPP
 END_RCPP
 }
 // SharedBart
-List SharedBart(arma::mat& X, arma::vec& Y, arma::mat& W, arma::uvec& delta, arma::mat& X_test, arma::mat& W_test, List hypers_, List opts_);
-RcppExport SEXP _SharedForest_SharedBart(SEXP XSEXP, SEXP YSEXP, SEXP WSEXP, SEXP deltaSEXP, SEXP X_testSEXP, SEXP W_testSEXP, SEXP hypers_SEXP, SEXP opts_SEXP) {
+List SharedBart(arma::mat& W, arma::uvec& delta1, arma::uvec& delta2, arma::mat& W_test, List hypers_, List opts_);
+RcppExport SEXP _SharedForestBinary_SharedBart(SEXP WSEXP, SEXP delta1SEXP, SEXP delta2SEXP, SEXP W_testSEXP, SEXP hypers_SEXP, SEXP opts_SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< arma::vec& >::type Y(YSEXP);
     Rcpp::traits::input_parameter< arma::mat& >::type W(WSEXP);
-    Rcpp::traits::input_parameter< arma::uvec& >::type delta(deltaSEXP);
-    Rcpp::traits::input_parameter< arma::mat& >::type X_test(X_testSEXP);
+    Rcpp::traits::input_parameter< arma::uvec& >::type delta1(delta1SEXP);
+    Rcpp::traits::input_parameter< arma::uvec& >::type delta2(delta2SEXP);
     Rcpp::traits::input_parameter< arma::mat& >::type W_test(W_testSEXP);
     Rcpp::traits::input_parameter< List >::type hypers_(hypers_SEXP);
     Rcpp::traits::input_parameter< List >::type opts_(opts_SEXP);
-    rcpp_result_gen = Rcpp::wrap(SharedBart(X, Y, W, delta, X_test, W_test, hypers_, opts_));
-    return rcpp_result_gen;
-END_RCPP
-}
-// MixedBart
-List MixedBart(arma::mat& X, arma::vec& Y, arma::mat& W, arma::uvec& delta, arma::uvec& cluster, arma::uvec& clusterw, List hypers_, List opts_);
-RcppExport SEXP _SharedForest_MixedBart(SEXP XSEXP, SEXP YSEXP, SEXP WSEXP, SEXP deltaSEXP, SEXP clusterSEXP, SEXP clusterwSEXP, SEXP hypers_SEXP, SEXP opts_SEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< arma::vec& >::type Y(YSEXP);
-    Rcpp::traits::input_parameter< arma::mat& >::type W(WSEXP);
-    Rcpp::traits::input_parameter< arma::uvec& >::type delta(deltaSEXP);
-    Rcpp::traits::input_parameter< arma::uvec& >::type cluster(clusterSEXP);
-    Rcpp::traits::input_parameter< arma::uvec& >::type clusterw(clusterwSEXP);
-    Rcpp::traits::input_parameter< List >::type hypers_(hypers_SEXP);
-    Rcpp::traits::input_parameter< List >::type opts_(opts_SEXP);
-    rcpp_result_gen = Rcpp::wrap(MixedBart(X, Y, W, delta, cluster, clusterw, hypers_, opts_));
+    rcpp_result_gen = Rcpp::wrap(SharedBart(W, delta1, delta2, W_test, hypers_, opts_));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_SharedForest_rlgam", (DL_FUNC) &_SharedForest_rlgam, 1},
-    {"_SharedForest_rcpparma_hello_world", (DL_FUNC) &_SharedForest_rcpparma_hello_world, 0},
-    {"_SharedForest_rcpparma_outerproduct", (DL_FUNC) &_SharedForest_rcpparma_outerproduct, 1},
-    {"_SharedForest_rcpparma_innerproduct", (DL_FUNC) &_SharedForest_rcpparma_innerproduct, 1},
-    {"_SharedForest_rcpparma_bothproducts", (DL_FUNC) &_SharedForest_rcpparma_bothproducts, 1},
-    {"_SharedForest_SharedBart", (DL_FUNC) &_SharedForest_SharedBart, 8},
-    {"_SharedForest_MixedBart", (DL_FUNC) &_SharedForest_MixedBart, 8},
+    {"_SharedForestBinary_rlgam", (DL_FUNC) &_SharedForestBinary_rlgam, 1},
+    {"_SharedForestBinary_rcpparma_hello_world", (DL_FUNC) &_SharedForestBinary_rcpparma_hello_world, 0},
+    {"_SharedForestBinary_rcpparma_outerproduct", (DL_FUNC) &_SharedForestBinary_rcpparma_outerproduct, 1},
+    {"_SharedForestBinary_rcpparma_innerproduct", (DL_FUNC) &_SharedForestBinary_rcpparma_innerproduct, 1},
+    {"_SharedForestBinary_rcpparma_bothproducts", (DL_FUNC) &_SharedForestBinary_rcpparma_bothproducts, 1},
+    {"_SharedForestBinary_SharedBart", (DL_FUNC) &_SharedForestBinary_SharedBart, 6},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_SharedForest(DllInfo *dll) {
+RcppExport void R_init_SharedForestBinary(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }
