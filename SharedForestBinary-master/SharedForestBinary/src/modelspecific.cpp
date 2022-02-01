@@ -100,7 +100,7 @@ void TreeBackfit(std::vector<Node*>& forest,
 //recursive function
 arma::mat predict_theta(std::vector<Node*> forest, arma::mat& W) {
   int N = forest.size();
-  vec out = zeros<vec>(W.n_rows);
+  mat out = zeros<mat>(N, 2);
   for(int n = 0 ; n < N; n++) {
     out = out + predict_theta(forest[n], W);
   }
@@ -122,20 +122,20 @@ arma::mat predict_theta(std::vector<Node*> forest, arma::mat& W) {
 
 arma::mat predict_theta(Node* tree, arma::mat& W) {
   int N = W.n_rows;
-  vec out = zeros<vec>(N);
+  mat out = zeros<mat>(N, 2);
   for(int i = 0; i < N; i++) {
     rowvec w = W.row(i);
-    out(i) = predict_theta(tree,w);
+    out.row(i) = predict_theta(tree,w);
   }
   return out;
 }
 
 arma::mat predict_theta(Node* tree, MyData& data) {
   int N = data.W.n_rows;
-  vec out = zeros<vec>(N);
+  mat out = zeros<mat>(N, 2);
   for(int i = 0; i < N; i++) {
     rowvec w = data.W.row(i);
-    out(i) = predict_theta(tree,w);
+    out.row(i) = predict_theta(tree,w);
   }
   return out;
 }
@@ -356,10 +356,10 @@ void UpdateSigmaParam(std::vector<Node*>& forest) {
 
   // Update sigma_theta2
   //LRF: UPDATED
-  double prec_theta_old = pow(forest[0]->hypers->sigma_theta2, -2.0);
-  double prec_theta_new = Rf_rgamma(1.0 + 0.5 * num_leaves, 1.0 / (0.5 * Lambda_theta));
-  double loglik_rat = cauchy_jacobian(prec_theta_new, sigma_theta_hat) - cauchy_jacobian(prec_theta_old, sigma_theta_hat);
-  double prec = log(unif_rand()) < loglik_rat ? prec_theta_new : prec_theta_old;
+   prec_theta_old = pow(forest[0]->hypers->sigma_theta2, -2.0);
+   prec_theta_new = Rf_rgamma(1.0 + 0.5 * num_leaves, 1.0 / (0.5 * Lambda_theta));
+   loglik_rat = cauchy_jacobian(prec_theta_new, sigma_theta_hat) - cauchy_jacobian(prec_theta_old, sigma_theta_hat);
+   prec = log(unif_rand()) < loglik_rat ? prec_theta_new : prec_theta_old;
 
   forest[0]->hypers->sigma_theta2 = pow(prec, -0.5);
 
