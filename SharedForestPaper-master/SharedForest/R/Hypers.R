@@ -20,7 +20,7 @@
 #' @param num_tree_prob Parameter for geometric prior on number of tree
 #'
 #' @return Returns a list containing the function arguments.
-Hypers <- function(X,Y,W,delta, group = NULL,
+Hypers <- function(W,delta1, delta2, group = NULL,
                    alpha = 1,
                    beta = 2,
                    gamma = 0.95,
@@ -36,12 +36,8 @@ Hypers <- function(X,Y,W,delta, group = NULL,
                    theta_0 = NULL,
                    shape = 1) {
 
-
-  ## Preprocess stuff (in order they appear in args)
-  Y <- scale(Y)
-
   if(is.null(group)) {
-    group                          <- 1:ncol(X) - 1
+    group                          <- 1:ncol(W) - 1
   } else {
     group                          <- group - 1
   }
@@ -58,8 +54,9 @@ Hypers <- function(X,Y,W,delta, group = NULL,
   b_tau <- pars[2]
 
   alpha_scale <- ifelse(is.null(alpha_scale), ncol(X), alpha_scale)
-  sigma_hat <- ifelse(is.null(sigma_hat), GetSigma(X,Y), sigma_hat)
-  theta_0   <- ifelse(is.null(theta_0), qnorm(mean(delta)), theta_0)
+  #sigma_hat <- ifelse(is.null(sigma_hat), GetSigma(X,Y), sigma_hat)
+  theta_01   <- ifelse(is.null(theta_01), qnorm(mean(delta1)), theta_01)
+  theta_02   <- ifelse(is.null(theta_02), qnorm(mean(delta2)), theta_02)
 
   ## MAKE OUTPUT AND RETURN IT
 

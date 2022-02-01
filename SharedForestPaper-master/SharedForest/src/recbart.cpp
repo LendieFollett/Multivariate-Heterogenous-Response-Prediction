@@ -10,6 +10,7 @@ List SharedBart(arma::mat& W,
                 arma::mat& W_test,
                 List hypers_,
                 List opts_) {
+
   arma::uvec group = hypers_["group"];
   Hypers hypers(W, group, hypers_);
   Opts opts(opts_);

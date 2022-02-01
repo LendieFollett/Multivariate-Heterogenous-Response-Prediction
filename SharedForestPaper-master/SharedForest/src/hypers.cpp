@@ -25,7 +25,7 @@ int Hypers::SampleVar() const {
   return group_to_vars[group_idx][var_idx];
 }
 
-Hypers::Hypers(const mat& X,
+Hypers::Hypers(const mat& W,
                const arma::uvec& group,
                Rcpp::List hypers) {
 
@@ -40,9 +40,11 @@ Hypers::Hypers(const mat& X,
   alpha_shape_1 = hypers["alpha_shape_1"];
   alpha_shape_2 = hypers["alpha_shape_2"];
   scale_sigma   = hypers["sigma_hat"];
-  sigma_theta   = hypers["sigma_theta"];
+  sigma_theta1   = hypers["sigma_theta1"];
+  sigma_theta2   = hypers["sigma_theta2"];
   sigma_mu_hat  = pow(kappa, -0.5);
-  theta_0       = hypers["theta_0"];
+  theta_01       = hypers["theta_01"];
+  theta_012      = hypers["theta_02"];
   tau_0         = pow(scale_sigma, -2.0);
   num_groups    = group.max() + 1;
   s             = ones<vec>(num_groups)/((double)num_groups);
@@ -50,7 +52,8 @@ Hypers::Hypers(const mat& X,
   this->group   = group;
 
   sigma_mu_hat  = pow(kappa, -0.5);
-  sigma_theta_hat = sigma_theta;
+  sigma_theta_hat1 = sigma_theta1;
+  sigma_theta_hat2 = sigma_theta2;
 
   group_to_vars.resize(s.size());
   for(int i = 0; i < s.size(); i++) {
