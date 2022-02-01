@@ -82,7 +82,7 @@ struct MyData {
   MyData(arma::mat& Ww, 
          arma::uvec& deltax1,
          arma::uvec& deltax2,  double theta_01, double theta_02)
-  :  W(Ww), delta2(deltax1), delta2(deltax2) {
+  :  W(Ww), delta1(deltax1), delta2(deltax2) {
 
     theta_hat1 = theta_01 + arma::zeros<arma::vec>(Ww.n_rows);
     theta_hat2 = theta_02 + arma::zeros<arma::vec>(Ww.n_rows);
