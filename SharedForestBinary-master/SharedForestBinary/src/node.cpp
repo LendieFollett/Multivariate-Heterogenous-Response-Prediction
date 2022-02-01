@@ -16,9 +16,8 @@ Node::Node(Hypers* hypers) {
   upper   = 1.0;
   depth   = 0;
 
-  mu      = 0.0;
-  tau     = 1.0;
-  theta   = 0.0;
+  theta1   = 0.0;
+  theta2   = 0.0;
 
   this->hypers = hypers;
 }
@@ -35,9 +34,9 @@ Node::Node(Node* parent) {
   lower = 0.0;
   upper = 1.0;
   depth = parent->depth + 1;
-  mu = 0.0;
-  tau = 1.0;
-  theta = 0.0;
+
+  theta1 = 0.0;
+  theta2 = 0.0;
 
   hypers = parent->hypers;
 }
