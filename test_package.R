@@ -1,8 +1,8 @@
 #library(devtools)
 #install_github("LendieFollett/Multivariate-Heterogenous-Response-Prediction/SharedForestBinary-master/SharedForestBinary")
 #or
-install.packages("/Users/000766412/OneDrive - Drake University/Documents/GitHub/Multivariate-Heterogenous-Response-Prediction/SharedForestBinary-master/SharedForestBinary", 
-                 repos = NULL, 
+install.packages("/Users/000766412/OneDrive - Drake University/Documents/GitHub/Multivariate-Heterogenous-Response-Prediction/SharedForestBinary-master/SharedForestBinary",
+                 repos = NULL,
                  type = "source")
 library(SharedForestBinary)
 library(dplyr)
@@ -25,5 +25,10 @@ temp <- SharedBart(W = W,
             W_test=W_test,
            hypers_ = hypers,
            opts_ = opts)
+
+temp$theta_hat_test1 %>%str()
+#inverse link
+temp$theta_hat_test1 %>% apply(2, mean) %>% pnorm()
+
 
 
