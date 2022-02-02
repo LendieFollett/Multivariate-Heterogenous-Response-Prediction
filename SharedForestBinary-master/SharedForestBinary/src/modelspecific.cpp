@@ -102,10 +102,10 @@ arma::mat predict_theta(std::vector<Node*> forest, arma::mat& W) {
   int N = forest.size();
   mat out = zeros<mat>(W.n_rows, 2);
   for(int n = 0 ; n < N; n++) {
-    mat theta12 = predict_theta(forest[n], W)
+    mat theta12 = predict_theta(forest[n], W);
     //out = out + predict_theta(forest[n], W);
     out.col(0) = out.col(0) + theta12.col(0);
-    out.col(1) = out.col(1) + theat12.col(1);
+    out.col(1) = out.col(1) + theta12.col(1);
   }
   return out;
 }
