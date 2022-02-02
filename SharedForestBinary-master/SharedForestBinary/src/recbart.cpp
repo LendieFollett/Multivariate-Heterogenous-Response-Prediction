@@ -47,7 +47,7 @@ List SharedBart(arma::mat& W,
       IterateGibbsWithS(forest, data, opts);
       //Rcout << "Did IterageGibbsWithS " << i << std::endl;
       UpdateZ(data);
-      Rcout << "Did UpdateZ " << i << std::endl;
+      //Rcout << "Did UpdateZ " << i << std::endl;
     }
     if(i % opts.num_print == 0) Rcout << "Finishing save " << i << "\t\t\r";
 

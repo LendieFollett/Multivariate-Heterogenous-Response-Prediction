@@ -1,3 +1,5 @@
+#SharedForestBinary is a modification of the SharedForest package
+
 #library(devtools)
 #install_github("LendieFollett/Multivariate-Heterogenous-Response-Prediction/SharedForestBinary-master/SharedForestBinary")
 #or
@@ -12,8 +14,8 @@ P = 10
 n_train = 300
 n_test = 100
 W <- matrix(rnorm(P*n_train), ncol = P)
-delta1 <- rbinom(n = n_train, size = 1, prob = .5)
-delta2 <- rbinom(n = n_train, size = 1, prob = .5)
+delta1 <- rbinom(n = n_train, size = 1, prob = (1 + exp(-1.5*W[,1]))^(-1))
+delta2 <- rbinom(n = n_train, size = 1, prob = (1 + exp(-1.5*W[,2]))^(-1))
 W_test <- matrix(rnorm(P*n_test), ncol = P)
 
 hypers <- Hypers(W,delta1, delta2)
@@ -30,5 +32,7 @@ temp$theta_hat_test1 %>%str()
 #inverse link
 temp$theta_hat_test1 %>% apply(2, mean) %>% pnorm()
 
-
-
+#dirichlet probability posterior means - should pick out most important
+s_hat <- temp$s %>%apply(2, mean)
+ggplot() + geom_bar(aes(x = 1:ncol(W), y = s_hat), stat = "identity") +
+  labs(x = "Variable", y = "Inclusion Probability (s-hat)")
