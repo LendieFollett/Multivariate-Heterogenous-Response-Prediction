@@ -43,11 +43,11 @@ List SharedBart(arma::mat& W,
 
   for(int i = 0; i < opts.num_save; i++) {
     for(int j = 0; j < opts.num_thin; j++) {
-      //Rcout << "Started second loop " << i << std::endl;
+      Rcout << "Started second loop " << i << std::endl;
       IterateGibbsWithS(forest, data, opts);
-      //Rcout << "Did IterageGibbsWithS " << i << std::endl;
+      Rcout << "Did IterageGibbsWithS " << i << std::endl;
       UpdateZ(data);
-      //Rcout << "Did UpdateZ " << i << std::endl;
+      Rcout << "Did UpdateZ " << i << std::endl;
     }
     if(i % opts.num_print == 0) Rcout << "Finishing save " << i << "\t\t\r";
     // if(i % 100 == 0) Rcout << "Finishing save " << i << std::endl;
@@ -55,6 +55,7 @@ List SharedBart(arma::mat& W,
     //tau_hat.row(i) = trans(data.tau_hat);
     theta_hat1.row(i) = trans(data.theta_hat1);
     theta_hat2.row(i) = trans(data.theta_hat2);
+    Rcout << "Did theta_hat1,2 " << i << std::endl;
     s.row(i) = trans(hypers.s);
     Rcout << "Did hypers.s " << i << std::endl;
     mat theta_hat = trans(predict_theta(forest, W_test));
