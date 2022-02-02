@@ -100,7 +100,7 @@ void TreeBackfit(std::vector<Node*>& forest,
 //recursive function
 arma::mat predict_theta(std::vector<Node*> forest, arma::mat& W) {
   int N = forest.size();
-  mat out = zeros<mat>(N, 2);
+  mat out = zeros<mat>(W.n_rows, 2);
   for(int n = 0 ; n < N; n++) {
     out = out + predict_theta(forest[n], W);
   }

@@ -6,15 +6,15 @@
 \description{\packageDescription{SharedForestBinary}}
 \details{
   The DESCRIPTION file: \packageDESCRIPTION{SharedForestBinary}
-  \packageIndices{SharedForest}
+  \packageIndices{SharedForestBinary}
 
   This section should provide a more detailed overview of how to use the
   package, including the most important functions.
 }
 \author{
-  \packageAuthor{SharedForest}
+  \packageAuthor{SharedForestBinary}
 
-  Maintainer: \packageMaintainer{SharedForest}
+  Maintainer: \packageMaintainer{SharedForestBinary}
 }
 \references{
   This optional section can contain literature or other references for

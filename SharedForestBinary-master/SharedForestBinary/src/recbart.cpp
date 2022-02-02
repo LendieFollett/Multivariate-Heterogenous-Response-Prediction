@@ -15,7 +15,7 @@ List SharedBart(arma::mat& W,
   Hypers hypers(W, group, hypers_);
   Opts opts(opts_);
 
-  MyData data(W,delta1,delta2, hypers.theta_0);
+  MyData data(W,delta1,delta2, hypers.theta_01, hypers.theta_02);
 
 
 //SAVE ROOM
@@ -35,7 +35,7 @@ List SharedBart(arma::mat& W,
       IterateGibbsNoS(forest, data, opts);
     }
     UpdateZ(data);
-    if(i % opts.num_print == 0) Rcout << "Finishing warmup " << i << "\t\t\r";
+    if(i % opts.num_print == 0) Rcout << "Finishing warmup BLAH " << i << "\t\t\r";
     // if(i % 100 == 0) Rcout << "Finishing warmup " << i << std::endl;
   }
 
@@ -43,8 +43,11 @@ List SharedBart(arma::mat& W,
 
   for(int i = 0; i < opts.num_save; i++) {
     for(int j = 0; j < opts.num_thin; j++) {
+      //Rcout << "Started second loop " << i << std::endl;
       IterateGibbsWithS(forest, data, opts);
+      //Rcout << "Did IterageGibbsWithS " << i << std::endl;
       UpdateZ(data);
+      //Rcout << "Did UpdateZ " << i << std::endl;
     }
     if(i % opts.num_print == 0) Rcout << "Finishing save " << i << "\t\t\r";
     // if(i % 100 == 0) Rcout << "Finishing save " << i << std::endl;
@@ -53,6 +56,7 @@ List SharedBart(arma::mat& W,
     theta_hat1.row(i) = trans(data.theta_hat1);
     theta_hat2.row(i) = trans(data.theta_hat2);
     s.row(i) = trans(hypers.s);
+    Rcout << "Did hypers.s " << i << std::endl;
     mat theta_hat = trans(predict_theta(forest, W_test));
     theta_hat_test1.row(i) = theta_hat.col(0) + hypers.theta_01;
     theta_hat_test2.row(i) = theta_hat.col(1) + hypers.theta_02;
@@ -67,8 +71,8 @@ List SharedBart(arma::mat& W,
 
   List out;
 
-  out["theta_hat1"] = theta_hat;
-  out["theta_hat2"] = theta_hat;
+  out["theta_hat1"] = theta_hat1;
+  out["theta_hat2"] = theta_hat2;
   out["theta_hat_mean1"] = mean(theta_hat1, 0);
   out["theta_hat_mean2"] = mean(theta_hat2, 0);
   out["s"] = s;

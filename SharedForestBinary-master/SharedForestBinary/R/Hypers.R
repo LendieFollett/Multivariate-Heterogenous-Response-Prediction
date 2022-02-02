@@ -34,7 +34,8 @@ Hypers <- function(W,delta1, delta2, group = NULL,
                    sigma_hat = NULL, ## Determines tau_0 and its prior scale
                    sigma_theta1 = NULL,
                    sigma_theta2 = NULL,
-                   theta_0 = NULL,
+                   theta_01 = NULL,
+                   theta_02 = NULL,
                    shape = 1) {
 
   if(is.null(group)) {
@@ -54,7 +55,7 @@ Hypers <- function(W,delta1, delta2, group = NULL,
   a_tau <- pars[1]
   b_tau <- pars[2]
 
-  alpha_scale <- ifelse(is.null(alpha_scale), ncol(X), alpha_scale)
+  alpha_scale <- ifelse(is.null(alpha_scale), ncol(W), alpha_scale)#LRF: Need??
   #sigma_hat <- ifelse(is.null(sigma_hat), GetSigma(X,Y), sigma_hat)
   theta_01   <- ifelse(is.null(theta_01), qnorm(mean(delta1)), theta_01)
   theta_02   <- ifelse(is.null(theta_02), qnorm(mean(delta2)), theta_02)
@@ -76,7 +77,8 @@ Hypers <- function(W,delta1, delta2, group = NULL,
   out$sigma_hat                        <- sigma_hat
   out$sigma_theta1                      <- 3.0 / (k_theta * sqrt(num_tree))
   out$sigma_theta2                      <- 3.0 / (k_theta * sqrt(num_tree))
-  out$theta_0                          <- theta_0
+  out$theta_01                          <- theta_01
+  out$theta_02                          <- theta_02
   out$group                            <- group
 
 
