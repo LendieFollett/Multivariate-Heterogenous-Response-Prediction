@@ -4,7 +4,7 @@ using namespace Rcpp;
 using namespace arma;
 
 // [[Rcpp::export]]
-List SharedBart(arma::mat& W,
+List SharedBartBinary(arma::mat& W,
                 arma::uvec& delta1,
                 arma::uvec& delta2,
                 arma::mat& W_test,

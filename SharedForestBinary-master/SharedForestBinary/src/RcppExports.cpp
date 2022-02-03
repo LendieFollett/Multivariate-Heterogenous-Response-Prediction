@@ -60,9 +60,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// SharedBart
-List SharedBart(arma::mat& W, arma::uvec& delta1, arma::uvec& delta2, arma::mat& W_test, List hypers_, List opts_);
-RcppExport SEXP _SharedForestBinary_SharedBart(SEXP WSEXP, SEXP delta1SEXP, SEXP delta2SEXP, SEXP W_testSEXP, SEXP hypers_SEXP, SEXP opts_SEXP) {
+// SharedBartBinary
+List SharedBartBinary(arma::mat& W, arma::uvec& delta1, arma::uvec& delta2, arma::mat& W_test, List hypers_, List opts_);
+RcppExport SEXP _SharedForestBinary_SharedBartBinary(SEXP WSEXP, SEXP delta1SEXP, SEXP delta2SEXP, SEXP W_testSEXP, SEXP hypers_SEXP, SEXP opts_SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -72,7 +72,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat& >::type W_test(W_testSEXP);
     Rcpp::traits::input_parameter< List >::type hypers_(hypers_SEXP);
     Rcpp::traits::input_parameter< List >::type opts_(opts_SEXP);
-    rcpp_result_gen = Rcpp::wrap(SharedBart(W, delta1, delta2, W_test, hypers_, opts_));
+    rcpp_result_gen = Rcpp::wrap(SharedBartBinary(W, delta1, delta2, W_test, hypers_, opts_));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -83,7 +83,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_SharedForestBinary_rcpparma_outerproduct", (DL_FUNC) &_SharedForestBinary_rcpparma_outerproduct, 1},
     {"_SharedForestBinary_rcpparma_innerproduct", (DL_FUNC) &_SharedForestBinary_rcpparma_innerproduct, 1},
     {"_SharedForestBinary_rcpparma_bothproducts", (DL_FUNC) &_SharedForestBinary_rcpparma_bothproducts, 1},
-    {"_SharedForestBinary_SharedBart", (DL_FUNC) &_SharedForestBinary_SharedBart, 6},
+    {"_SharedForestBinary_SharedBartBinary", (DL_FUNC) &_SharedForestBinary_SharedBartBinary, 6},
     {NULL, NULL, 0}
 };
 

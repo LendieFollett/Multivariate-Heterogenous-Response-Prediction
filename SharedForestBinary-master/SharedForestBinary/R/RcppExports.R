@@ -21,7 +21,7 @@ rcpparma_bothproducts <- function(x) {
     .Call('_SharedForestBinary_rcpparma_bothproducts', PACKAGE = 'SharedForestBinary', x)
 }
 
-SharedBart <- function(W, delta1, delta2, W_test, hypers_, opts_) {
-    .Call('_SharedForestBinary_SharedBart', PACKAGE = 'SharedForestBinary', W, delta1, delta2, W_test, hypers_, opts_)
+SharedBartBinary <- function(W, delta1, delta2, W_test, hypers_, opts_) {
+    .Call('_SharedForestBinary_SharedBartBinary', PACKAGE = 'SharedForestBinary', W, delta1, delta2, W_test, hypers_, opts_)
 }
 
