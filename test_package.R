@@ -25,8 +25,8 @@ d_test <- array(NA, dim = c(n_test, 2))
 Sigma <-rho*(1-diag(2)) + diag(2)
 results <- list()
 
-for(i in 1:nrep){
-print(paste0("************* Repetition = ", i, " *************"))
+for(r in 1:nrep){
+print(paste0("************* Repetition = ", r, " *************"))
 
 W <- matrix(rnorm(P*n_train), ncol = P)
 means <- cbind(-1.5*W[,1], 1.5*W[,1])
@@ -89,12 +89,13 @@ confusionMatrix(fitmat$sb_pred1, fitmat$delta1_test)$byClass[c(1,2)]
 confusionMatrix(fitmat$b_pred1, fitmat$delta1_test)$byClass[c(1,2)]
 
 #response 2
-results[[i]] <- data.frame(model = c("Shared BART", "Sequential BARTs"),
+results[[r]] <- data.frame(model = c("Shared BART", "Sequential BARTs"),
                            rbind(confusionMatrix(fitmat$sb_pred2, fitmat$delta2_test)$byClass[c(1,2)]%>%t(),
                       confusionMatrix(fitmat$b_pred2, fitmat$delta2_test)$byClass[c(1,2)]%>%t()))
 
-
 }
+
+do.call(rbind, results)
 
 
 
