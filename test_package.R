@@ -54,6 +54,7 @@ s_hat <- temp$s %>%apply(2, mean)
 ggplot() + geom_bar(aes(x = 1:ncol(W), y = s_hat), stat = "identity") +
   labs(x = "Variable", y = "Inclusion Probability (s-hat)")
 
+g0 <- function(x){as.numeric(x > 0)}
 
 #two individual BART models
 b1 <- gbart(x.train = W,
@@ -61,12 +62,12 @@ b1 <- gbart(x.train = W,
             x.test = W_test,
             type = "pbart")
 
-b2 <- gbart(x.train = W,
+b2 <- gbart(x.train = cbind(W, delta1), #train: use actual delta1
             y.train = delta2,
-            x.test = W_test,
+            x.test = cbind(W_test,b1$yhat.test %>%apply(2, mean) %>% g0), #test: use predicted delta1
             type = "pbart")
 
-g0 <- function(x){as.numeric(x > 0)}
+
 
 results<- data.frame(delta1_test, delta2_test,
            sb_pred1 = sb$theta_hat_test1%>%apply(2, mean) %>% g0,
