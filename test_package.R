@@ -87,12 +87,22 @@ b2 <- gbart(x.train = cbind(W, delta1), #train: use actual delta1
             printevery=1000)
 
 
+#two individual random forest models
+rf1 <- randomForest(x = W,
+                    y = delta1 %>%as.factor(),
+                    xtest = W_test)
+
+rf2 <- randomForest(x = cbind(W, delta1),
+                    y = delta2 %>%as.factor(),
+                    xtest = cbind(W_test,ifelse(rf1$test$predicted==TRUE, 1, 0)))
+
 
 fitmat<- data.frame(delta1_test, delta2_test,
            sb_pred1 = sb$theta_hat_test1%>%apply(2, mean) %>% g0,
            sb_pred2 = sb$theta_hat_test2%>%apply(2, mean) %>% g0,
            b_pred1 = b1$yhat.test %>%apply(2, mean) %>% g0,
-           b_pred2 = b2$yhat.test%>%apply(2, mean) %>% g0)
+           b_pred2 = b2$yhat.test%>%apply(2, mean) %>% g0,
+           rf_pred2 = ifelse(rf2$test$predicted==TRUE, 1, 0))
 fitmat <-  fitmat %>% mutate_all(as.factor)
 
 #response 1
@@ -100,9 +110,10 @@ confusionMatrix(fitmat$sb_pred1, fitmat$delta1_test)$byClass[c(1,2)]
 confusionMatrix(fitmat$b_pred1, fitmat$delta1_test)$byClass[c(1,2)]
 
 #response 2
-results[[r]] <- data.frame(model = c("Shared BART", "Sequential BARTs"),
+results[[r]] <- data.frame(model = c("Shared BART", "Sequential BARTs", "Sequential RF"),
                            rbind(confusionMatrix(fitmat$sb_pred2, fitmat$delta2_test)$byClass[c(1,2)]%>%t(),
-                                 confusionMatrix(fitmat$b_pred2, fitmat$delta2_test)$byClass[c(1,2)]%>%t()))
+                                 confusionMatrix(fitmat$b_pred2, fitmat$delta2_test)$byClass[c(1,2)]%>%t(),
+                                 confusionMatrix(fitmat$rf_pred2, fitmat$delta2_test)$byClass[c(1,2)]%>%t()))
 
 }
 
