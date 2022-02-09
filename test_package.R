@@ -17,7 +17,7 @@ library(caret)
 library(randomForest)
 
 #"s the variable selection task becomes more difficult, the model which does not share information is far more sensitive to irrelevant predictors than the model which does share"
-P = 50
+P = 75
 n_train = 500
 n_test = 250
 rho <- 0 #Note: shared bart assumes Z1, Z2 are independent GIVEN the Xs
@@ -25,7 +25,7 @@ nrep <- 10
 d <- array(NA, dim = c(n_train, 2))
 d_test <- array(NA, dim = c(n_test, 2))
 Sigma <-rho*(1-diag(2)) + diag(2)
-results <- list()
+
 
 #see Section 4. Simulation Study in Linero paper
 sigma_theta <- 1
@@ -35,6 +35,9 @@ f_fun <- function(W){10*sin(pi*W[,1]*W[,2]) + 20*(W[,3]- 0.5)^2 + 10*W[,4] + 5*W
 g0 <- function(x){as.numeric(x > 0)}
 m_mean <- function(x){as.numeric(x - mean(x))}
 
+
+results <- list()
+fitmat <- list()
 
 
 for(r in 1:nrep){
@@ -106,25 +109,47 @@ P1 <- 1-pnorm(0, mean = means_test[,2], sd= sqrt(Sigma[2,2])) #P(d2 = 1)
 #Random forest estimated P(d2 = 1)
 rf2_P1 <- predict(object = rf2, newdata = cbind(W_test,ifelse(rf1$test$predicted==TRUE, 1, 0)), type = "prob")[,"TRUE"]
 #Shared bart estimated P(d2 = 1)
-sb_P1 = 1-pnorm(0, mean=sb$theta_hat_test2 %>% apply(2, mean), sd = 1 ) #1-P(Z2 < 0| theta-hat, 1)
+sb_P1 = pnorm(sb$theta_hat_test2 %>% apply(2, mean)) #P(Z < theta-hat|0, 1)
 #bart estimated P(d2 = 1)
-b_P1 = 1-pnorm(0, mean =b2$yhat.test%>%apply(2, mean), sd = 1)#1-P(Z < 0| theta-hat, 1)
+b_P1 = pnorm(b2$yhat.test%>%apply(2, mean))#P(Z < theta-hat|0, 1)
 
 
-fitmat<- data.frame(delta1_test = as.factor(delta1_test),
-                    delta2_test=as.factor(delta2_test),
+#TUNE PI*
+rocCurve <- roc(response = delta2_test,#give it truth
+                predictor = sb_P1,#probabilities of positive event W
+                levels = c("0", "1"))#(negative level, positive level)
+sb_pi_star <- coords(rocCurve, "best", ret = "threshold")$threshold[1]
+
+rocCurve <- roc(response = delta2_test,#give it truth
+                predictor = b_P1,#probabilities of positive event W
+                levels = c("0", "1"))#(negative level, positive level)
+b_pi_star <- coords(rocCurve, "best", ret = "threshold")$threshold[1]
+
+rocCurve <- roc(response = delta2_test,#give it truth
+                predictor = rf2_P1,#probabilities of positive event W
+                levels = c("0", "1"))#(negative level, positive level)
+rf_pi_star <- coords(rocCurve, "best", ret = "threshold")$threshold[1]
+
+
+
+
+fm<- data.frame(delta1_test = as.factor(delta1_test),
+                delta2_test=as.factor(delta2_test),
            true_P1 = P1, #true probability d_2 = 1
            sb_P1 = sb_P1, #predicted probability d_2 = 1
            b_P1 = b_P1,
            rf_P1 = rf2_P1,
            sb_pred1 = sb$theta_hat_test1%>%apply(2, mean) %>% g0,
-           sb_pred2 = sb$theta_hat_test2%>%apply(2, mean) %>% g0,
+           sb_pred2 = (sb_P1 > sb_pi_star) %>%as.numeric,#sb$theta_hat_test2%>%apply(2, mean) %>% g0,
            b_pred1 = b1$yhat.test %>%apply(2, mean) %>% g0,
-           b_pred2 = b2$yhat.test%>%apply(2, mean) %>% g0,
-           rf_pred2 = (rf2_P1 > 0.5) %>%as.numeric)
-fitmat <-  fitmat %>% mutate_at(vars(matches("pred")),as.factor)
+           b_pred2 = (b_P1 > b_pi_star) %>%as.numeric,#b2$yhat.test%>%apply(2, mean) %>% g0,
+           rf_pred2 = (rf2_P1 > rf_pi_star) %>%as.numeric)
+fm <-  fm %>% mutate_at(vars(matches("pred")),as.factor)
+
+fitmat[[r]] <- fm
 
 #qplot(p1, sb_P1, data = fitmat)
+
 
 
 #response 1
@@ -133,19 +158,23 @@ fitmat <-  fitmat %>% mutate_at(vars(matches("pred")),as.factor)
 
 #response 2
 results[[r]] <- data.frame(model = c("Shared BART", "Sequential BARTs", "Sequential RF"),
-                           rbind(confusionMatrix(fitmat$sb_pred2, fitmat$delta2_test)$byClass[c(1,2)]%>%t(),
-                                 confusionMatrix(fitmat$b_pred2, fitmat$delta2_test)$byClass[c(1,2)]%>%t(),
-                                 confusionMatrix(fitmat$rf_pred2, fitmat$delta2_test)$byClass[c(1,2)]%>%t()))
+                           rbind(confusionMatrix(fm$sb_pred2, fm$delta2_test)$byClass[c(1,2)]%>%t(),
+                                 confusionMatrix(fm$b_pred2, fm$delta2_test)$byClass[c(1,2)]%>%t(),
+                                 confusionMatrix(fm$rf_pred2, fm$delta2_test)$byClass[c(1,2)]%>%t()))
 
 }
 
 resultsd <- do.call(rbind, results)
+fitmatd <- do.call(rbind, fitmat)
 
 ggplot(data = resultsd) +
   geom_boxplot(aes(x = model, y = Sensitivity))
 
 ggplot(data = resultsd) +
   geom_boxplot(aes(x = model, y = Specificity))
+
+ggplot(data = fitmatd) +
+  geom_point(aes(x = , y = ))
 
 
 
