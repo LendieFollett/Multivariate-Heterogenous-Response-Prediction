@@ -20,7 +20,7 @@ library(randomForest)
 P = 75
 n_train = 500
 n_test = 250
-rho <- 0 #Note: shared bart assumes Z1, Z2 are independent GIVEN the Xs
+rho <- 0.7 #Note: shared bart assumes Z1, Z2 are independent GIVEN the Xs
 nrep <- 10
 d <- array(NA, dim = c(n_train, 2))
 d_test <- array(NA, dim = c(n_test, 2))
@@ -35,8 +35,8 @@ f_fun <- function(W){10*sin(pi*W[,1]*W[,2]) + 20*(W[,3]- 0.5)^2 + 10*W[,4] + 5*W
 g0 <- function(x){as.numeric(x > 0)}
 m_mean <- function(x){as.numeric(x - mean(x))}
 
+opts <- Opts(num_burn = 10000, num_thin = 1, num_save = 5000, num_print = 1000)
 
-results <- list()
 fitmat <- list()
 
 
@@ -54,7 +54,7 @@ for (i in 1:n_train){d[i,] <- mvrnorm(n = 1, mu=means[i,], Sigma = Sigma)}
 delta1 <- d[,1] > 0 %>%as.numeric()#rbinom(n = n_train, size = 1, prob = (1 + exp(-1.5*W[,1]))^(-1))
 delta2 <- d[,2] > 0 %>%as.numeric()#rbinom(n = n_train, size = 1, prob = (1 + exp(-1.5*W[,2]))^(-1))
 
-
+cor(delta1, delta2)
 
 for (i in 1:n_test){d_test[i,] <- mvrnorm(n = 1, mu=means_test[i,], Sigma = Sigma)}
 delta1_test <- (d_test[,1] > 0) %>%as.numeric()#rbinom(n = n_train, size = 1, prob = (1 + exp(-1.5*W[,1]))^(-1))
@@ -63,7 +63,6 @@ delta2_test <- (d_test[,2] > 0) %>%as.numeric()
 
 
 hypers <- Hypers(W,delta1, delta2)
-opts <- Opts(num_burn = 5000, num_thin = 1, num_save = 5000, num_print = 100)
 
 #BART with shared forest model
 sb <- SharedBartBinary(W = W,
@@ -82,85 +81,80 @@ ggplot() + geom_bar(aes(x = 1:ncol(W), y = s_hat), stat = "identity") +
 
 
 #two individual BART models
+#first, train BART (on training data) to predict gender (delta1) (on the testing data)
 b1 <- gbart(x.train = W,
             y.train = delta1,
-            x.test = W_test,
+            x.test = W_test, #get PREDICTED genders for the test set
             type = "pbart",
             printevery=1000)
 
-b2 <- gbart(x.train = cbind(W, delta1), #train: use actual delta1
-            y.train = delta2,
-            x.test = cbind(W_test,b1$yhat.test %>%apply(2, mean) %>% g0), #test: use predicted delta1
+#subsample of testing where delta1 is predicted to be 0
+predicted_theta1 <- b1$yhat.test%>%apply(2, mean)
+b_idx0 <- which(predicted_theta1 < 0)
+
+
+#"use the subsample of users predicted as women <delta1-hat = 0> to retrain the models to classify phone users"
+b2.1 <- gbart(x.train = W[delta1 == 0,],
+            y.train = delta2[delta1 == 0],
+            x.test = W_test[b_idx0,],
             type = "pbart",
             printevery=1000)
+
+#"use the subsample of users predicted as women <delta1-hat = 1>to retrain the models to classify phone users"
+b2.2 <- gbart(x.train =W[delta1 == 1,],
+            y.train = delta2[delta1 == 1],
+            x.test = W_test[-b_idx0,],
+            type = "pbart",
+            printevery=1000)
+
 
 
 #two individual random forest models
 rf1 <- randomForest(x = W,
-                    y = delta1 %>%as.factor(),
-                    xtest = W_test)
+                    y = as.factor(delta1 ))
+predicted_class <- predict(object = rf1, newdata = W_test, type = "class")
+rf_idx0 <- which(predicted_class == "FALSE")
 
-rf2 <- randomForest(x = cbind(W, delta1),
-                    y = delta2 %>%as.factor())
-
-
-#True P(d2 = 1) for test set
-P1 <- 1-pnorm(0, mean = means_test[,2], sd= sqrt(Sigma[2,2])) #P(d2 = 1)
-#Random forest estimated P(d2 = 1)
-rf2_P1 <- predict(object = rf2, newdata = cbind(W_test,ifelse(rf1$test$predicted==TRUE, 1, 0)), type = "prob")[,"TRUE"]
-#Shared bart estimated P(d2 = 1)
-sb_P1 = pnorm(sb$theta_hat_test2 %>% apply(2, mean)) #P(Z < theta-hat|0, 1)
-#bart estimated P(d2 = 1)
-b_P1 = pnorm(b2$yhat.test%>%apply(2, mean))#P(Z < theta-hat|0, 1)
+#train on delta1 == 0 sample
+rf2.1 <- randomForest(x = W[delta1 == 0,],
+                    y = as.factor(delta2)[delta1 == 0])
+#train on delta1 == 1 sample
+rf2.2 <- randomForest(x = W[delta1 == 1,],
+                      y = as.factor(delta2)[delta1 == 1])
 
 
-#TUNE PI*
-rocCurve <- roc(response = delta2_test,#give it truth
-                predictor = sb_P1,#probabilities of positive event W
-                levels = c("0", "1"))#(negative level, positive level)
-sb_pi_star <- coords(rocCurve, "best", ret = "threshold")$threshold[1]
-
-rocCurve <- roc(response = delta2_test,#give it truth
-                predictor = b_P1,#probabilities of positive event W
-                levels = c("0", "1"))#(negative level, positive level)
-b_pi_star <- coords(rocCurve, "best", ret = "threshold")$threshold[1]
-
-rocCurve <- roc(response = delta2_test,#give it truth
-                predictor = rf2_P1,#probabilities of positive event W
-                levels = c("0", "1"))#(negative level, positive level)
-rf_pi_star <- coords(rocCurve, "best", ret = "threshold")$threshold[1]
+#Goal: predict (1) proportion of test set employed (true prop delta2 == 1) when gender = 0: P(delta2 = 1 | delta1 = 0),
+# (2) proportion of test set employed (true prop delta2 == 1) when gender = 1: P(delta2 = 1 | delta1 = 1)
 
 
+#Random forest estimated P(d2 = 1 | d1)
+rf_d1_pred <- ifelse(predict(object = rf1, newdata = W_test, type = "class") == TRUE, 1, 0)
+rf_d2_pred_d1_0 <- ifelse(predict(object = rf2.1, newdata = W_test[rf_idx0,], type = "class") == TRUE, 1, 0)
+rf_d2_pred_d1_1 <- ifelse(predict(object = rf2.2, newdata = W_test[-rf_idx0,], type = "class") == TRUE, 1, 0)
+#bart estimated  P(d2 = 1 | d1)
+b_d1_pred <- ifelse(pnorm(b1$yhat.test%>%apply(2, mean))> 0.5, 1, 0)
+b_d2_pred_d1_0 <- ifelse(pnorm(b2.1$yhat.test%>%apply(2, mean))> 0.5, 1, 0)
+b_d2_pred_d1_1 <- ifelse(pnorm(b2.2$yhat.test%>%apply(2, mean))> 0.5, 1, 0)
+#Shared bart estimated  P(d2 = 1 | d1)
+sb_d1_pred <- pnorm(sb$theta_hat_test1 %>% apply(2, mean))
+sb_d2_pred <- pnorm(sb$theta_hat_test2 %>% apply(2, mean))
+sb_d2_pred_d1_0 <-ifelse(sb_d2_pred[sb_d1_pred  < 0.5]> 0.5, 1, 0)
+sb_d2_pred_d1_1 <- ifelse(sb_d2_pred[sb_d1_pred > 0.5]> 0.5, 1, 0)
+#True/observed  P(d2 = 1 | d1) in test set
 
-
-fm<- data.frame(delta1_test = as.factor(delta1_test),
-                delta2_test=as.factor(delta2_test),
-           true_P1 = P1, #true probability d_2 = 1
-           sb_P1 = sb_P1, #predicted probability d_2 = 1
-           b_P1 = b_P1,
-           rf_P1 = rf2_P1,
-           sb_pred1 = sb$theta_hat_test1%>%apply(2, mean) %>% g0,
-           sb_pred2 = (sb_P1 > sb_pi_star) %>%as.numeric,#sb$theta_hat_test2%>%apply(2, mean) %>% g0,
-           b_pred1 = b1$yhat.test %>%apply(2, mean) %>% g0,
-           b_pred2 = (b_P1 > b_pi_star) %>%as.numeric,#b2$yhat.test%>%apply(2, mean) %>% g0,
-           rf_pred2 = (rf2_P1 > rf_pi_star) %>%as.numeric)
+fm<- data.frame(true_d2_d1_0 = mean(delta2_test[delta1_test == 0]),
+                true_d2_d1_1 = mean(delta2_test[delta1_test == 1]),
+                rf_d2_pred_d1_0 = mean(rf_d2_pred_d1_0),
+                rf_d2_pred_d1_1 = mean(rf_d2_pred_d1_1),
+                b_d2_pred_d1_0 = mean(b_d2_pred_d1_0),
+                b_d2_pred_d1_1 = mean(b_d2_pred_d1_1),
+                sb_d2_pred_d1_0 = mean(sb_d2_pred_d1_0),
+                sb_d2_pred_d1_1 = mean(sb_d2_pred_d1_1))
 fm <-  fm %>% mutate_at(vars(matches("pred")),as.factor)
 
 fitmat[[r]] <- fm
 
-#qplot(p1, sb_P1, data = fitmat)
 
-
-
-#response 1
-#confusionMatrix(fitmat$sb_pred1, fitmat$delta1_test)$byClass[c(1,2)]
-#confusionMatrix(fitmat$b_pred1, fitmat$delta1_test)$byClass[c(1,2)]
-
-#response 2
-results[[r]] <- data.frame(model = c("Shared BART", "Sequential BARTs", "Sequential RF"),
-                           rbind(confusionMatrix(fm$sb_pred2, fm$delta2_test)$byClass[c(1,2)]%>%t(),
-                                 confusionMatrix(fm$b_pred2, fm$delta2_test)$byClass[c(1,2)]%>%t(),
-                                 confusionMatrix(fm$rf_pred2, fm$delta2_test)$byClass[c(1,2)]%>%t()))
 
 }
 
