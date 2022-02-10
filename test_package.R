@@ -15,12 +15,13 @@ library(MASS)
 library(BART)
 library(caret)
 library(randomForest)
+library(reshape2)
 
 #"s the variable selection task becomes more difficult, the model which does not share information is far more sensitive to irrelevant predictors than the model which does share"
 P = 75
 n_train = 500
 n_test = 250
-rho <- 0.7 #Note: shared bart assumes Z1, Z2 are independent GIVEN the Xs
+rho <- 0.0 #Note: shared bart assumes Z1, Z2 are independent GIVEN the Xs
 nrep <- 10
 d <- array(NA, dim = c(n_train, 2))
 d_test <- array(NA, dim = c(n_test, 2))
@@ -28,14 +29,15 @@ Sigma <-rho*(1-diag(2)) + diag(2)
 
 
 #see Section 4. Simulation Study in Linero paper
-sigma_theta <- 1
+sigma_theta1 <- 2
+sigma_theta2 <- 4
 
 
 f_fun <- function(W){10*sin(pi*W[,1]*W[,2]) + 20*(W[,3]- 0.5)^2 + 10*W[,4] + 5*W[,5]}
 g0 <- function(x){as.numeric(x > 0)}
 m_mean <- function(x){as.numeric(x - mean(x))}
 
-opts <- Opts(num_burn = 10000, num_thin = 1, num_save = 5000, num_print = 1000)
+opts <- Opts(num_burn = 5000, num_thin = 1, num_save = 5000, num_print = 1000)
 
 fitmat <- list()
 
@@ -46,8 +48,8 @@ print(paste0("************* Repetition = ", r, " *************"))
 W <- matrix(runif(P*n_train), ncol = P)
 W_test <- matrix(runif(P*n_test), ncol = P)
 
-means <- sigma_theta*(cbind(f_fun(W), f_fun(-W))/20-0.7) #%>% apply(2, m_mean)
-means_test <- sigma_theta*(cbind(f_fun(W_test), f_fun(-W_test))/20-0.7)#%>% apply(2, m_mean)
+means <- c(rep(sigma_theta1, n_train), rep(sigma_theta2, n_train))*(cbind(f_fun(W), f_fun(W))/20-0.7) #%>% apply(2, m_mean)
+means_test <-  c(rep(sigma_theta1, n_test), rep(sigma_theta2, n_test))*(cbind(f_fun(W_test), f_fun(W_test))/20-0.7)#%>% apply(2, m_mean)
 
 
 for (i in 1:n_train){d[i,] <- mvrnorm(n = 1, mu=means[i,], Sigma = Sigma)}
@@ -100,7 +102,7 @@ b2.1 <- gbart(x.train = W[delta1 == 0,],
             type = "pbart",
             printevery=1000)
 
-#"use the subsample of users predicted as women <delta1-hat = 1>to retrain the models to classify phone users"
+#"use the subsample of users predicted as men <delta1-hat = 1>to retrain the models to classify phone users"
 b2.2 <- gbart(x.train =W[delta1 == 1,],
             y.train = delta2[delta1 == 1],
             x.test = W_test[-b_idx0,],
@@ -135,11 +137,10 @@ rf_d2_pred_d1_1 <- ifelse(predict(object = rf2.2, newdata = W_test[-rf_idx0,], t
 b_d1_pred <- ifelse(pnorm(b1$yhat.test%>%apply(2, mean))> 0.5, 1, 0)
 b_d2_pred_d1_0 <- ifelse(pnorm(b2.1$yhat.test%>%apply(2, mean))> 0.5, 1, 0)
 b_d2_pred_d1_1 <- ifelse(pnorm(b2.2$yhat.test%>%apply(2, mean))> 0.5, 1, 0)
-#Shared bart estimated  P(d2 = 1 | d1)
-sb_d1_pred <- pnorm(sb$theta_hat_test1 %>% apply(2, mean))
-sb_d2_pred <- pnorm(sb$theta_hat_test2 %>% apply(2, mean))
-sb_d2_pred_d1_0 <-ifelse(sb_d2_pred[sb_d1_pred  < 0.5]> 0.5, 1, 0)
-sb_d2_pred_d1_1 <- ifelse(sb_d2_pred[sb_d1_pred > 0.5]> 0.5, 1, 0)
+#Shared bart estimated  P(d1 = 1), P(d2 = 1)
+sb_d1_pred <- ifelse(pnorm(sb$theta_hat_test1 %>% apply(2, mean)) > 0.5, 1, 0)
+sb_d2_pred <- ifelse(pnorm(sb$theta_hat_test2 %>% apply(2, mean)) > 0.5, 1, 0)
+
 #True/observed  P(d2 = 1 | d1) in test set
 
 fm<- data.frame(true_d2_d1_0 = mean(delta2_test[delta1_test == 0]),
@@ -148,9 +149,9 @@ fm<- data.frame(true_d2_d1_0 = mean(delta2_test[delta1_test == 0]),
                 rf_d2_pred_d1_1 = mean(rf_d2_pred_d1_1),
                 b_d2_pred_d1_0 = mean(b_d2_pred_d1_0),
                 b_d2_pred_d1_1 = mean(b_d2_pred_d1_1),
-                sb_d2_pred_d1_0 = mean(sb_d2_pred_d1_0),
-                sb_d2_pred_d1_1 = mean(sb_d2_pred_d1_1))
-fm <-  fm %>% mutate_at(vars(matches("pred")),as.factor)
+                sb_d2_pred_d1_0 = mean(sb_d2_pred[sb_d1_pred == 0]),
+                sb_d2_pred_d1_1 = mean(sb_d2_pred[sb_d1_pred == 1]))
+#fm <-  fm %>% mutate_at(vars(matches("pred")),as.factor)
 
 fitmat[[r]] <- fm
 
@@ -158,17 +159,18 @@ fitmat[[r]] <- fm
 
 }
 
-resultsd <- do.call(rbind, results)
 fitmatd <- do.call(rbind, fitmat)
+fitmatd <-  fitmatd %>% mutate_at(vars(matches("pred")),as.character)
+fitmatd <-  fitmatd %>% mutate_at(vars(matches("pred")),as.numeric)
 
-ggplot(data = resultsd) +
-  geom_boxplot(aes(x = model, y = Sensitivity))
+fitmatd_long0 <- fitmatd[,c(1,3,5,7)] %>% melt(id.vars = c(1))
+fitmatd_long1 <- fitmatd[,c(2,4,6,8)] %>% melt(id.vars = c(1))
 
-ggplot(data = resultsd) +
-  geom_boxplot(aes(x = model, y = Specificity))
+fitmatd_long0 %>% ggplot() + geom_point(aes(x = true_d2_d1_0, y = as.numeric(value))) +
+  facet_wrap(~variable) +
+  geom_abline(aes(intercept = 0, slope = 1))
 
-ggplot(data = fitmatd) +
-  geom_point(aes(x = , y = ))
-
-
+fitmatd_long1 %>% ggplot() + geom_point(aes(x = true_d2_d1_1, y = as.numeric(value))) +
+  facet_wrap(~variable)+
+  geom_abline(aes(intercept = 0, slope = 1))
 
