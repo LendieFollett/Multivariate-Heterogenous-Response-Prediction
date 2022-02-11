@@ -160,17 +160,17 @@ fitmat[[r]] <- fm
 }
 
 fitmatd <- do.call(rbind, fitmat)
-fitmatd <-  fitmatd %>% mutate_at(vars(matches("pred")),as.character)
-fitmatd <-  fitmatd %>% mutate_at(vars(matches("pred")),as.numeric)
+#fitmatd <-  fitmatd %>% mutate_at(vars(matches("pred")),as.character)
+#fitmatd <-  fitmatd %>% mutate_at(vars(matches("pred")),as.numeric)
 
 fitmatd_long0 <- fitmatd[,c(1,3,5,7)] %>% melt(id.vars = c(1))
 fitmatd_long1 <- fitmatd[,c(2,4,6,8)] %>% melt(id.vars = c(1))
 
 fitmatd_long0 %>% ggplot() + geom_point(aes(x = true_d2_d1_0, y = as.numeric(value))) +
-  facet_wrap(~variable) +
-  geom_abline(aes(intercept = 0, slope = 1))
+  facet_grid(~variable) +
+  geom_abline(aes(intercept = 0, slope = 1)) + xlim(0, 1)+ ylim(0, 1) +ggtitle("P(d2 = 1 | d1 = 0)")
 
 fitmatd_long1 %>% ggplot() + geom_point(aes(x = true_d2_d1_1, y = as.numeric(value))) +
   facet_wrap(~variable)+
-  geom_abline(aes(intercept = 0, slope = 1))
+  geom_abline(aes(intercept = 0, slope = 1))+ xlim(0,1)+ ylim(0, 1)+ggtitle("P(d2 = 1 | d1 = 1)")
 
