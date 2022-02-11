@@ -18,7 +18,7 @@ library(randomForest)
 library(reshape2)
 
 #"s the variable selection task becomes more difficult, the model which does not share information is far more sensitive to irrelevant predictors than the model which does share"
-P = 75
+P = 150
 n_train = 500
 n_test = 250
 rho <- 0.0 #Note: shared bart assumes Z1, Z2 are independent GIVEN the Xs
@@ -29,8 +29,8 @@ Sigma <-rho*(1-diag(2)) + diag (2)
 
 
 #see Section 4. Simulation Study in Linero paper
-sigma_theta1 <- 4
-sigma_theta2 <- -4
+sigma_theta1 <- 5
+sigma_theta2 <- -5
 
 
 f_fun <- function(W){10*sin(pi*W[,1]*W[,2]) + 20*(W[,3]- 0.5)^2 + 10*W[,4] + 5*W[,5]}
@@ -166,14 +166,22 @@ fitmatd <- do.call(rbind, fitmat)
 fitmatd_long0 <- fitmatd[,c(1,3,5,7)] %>% melt(id.vars = c(1))
 fitmatd_long1 <- fitmatd[,c(2,4,6,8)] %>% melt(id.vars = c(1))
 
-fitmatd_long0 %>% ggplot() + geom_point(aes(x = true_d2_d1_0, y = as.numeric(value))) +
+fitmatd_long0 %>% ggplot() + geom_point(aes(x = true_d2_d1_0, y = value)) +
   facet_grid(~variable) +
   geom_abline(aes(intercept = 0, slope = 1)) + xlim(0, 1)+ ylim(0, 1) +ggtitle("P(d2 = 1 | d1 = 0)")
 
-fitmatd_long1 %>% ggplot() + geom_point(aes(x = true_d2_d1_1, y = as.numeric(value))) +
+fitmatd_long1 %>% ggplot() + geom_point(aes(x = true_d2_d1_1, y = value)) +
   facet_wrap(~variable)+
   geom_abline(aes(intercept = 0, slope = 1))+ xlim(0,1)+ ylim(0, 1)+ggtitle("P(d2 = 1 | d1 = 1)")
 
 fitmatd_long0 %>% group_by(variable) %>% summarise(mse = mean((true_d2_d1_0 - value)^2))
 fitmatd_long1 %>% group_by(variable) %>% summarise(mse = mean((true_d2_d1_1 - value)^2))
+
+fitmatd_long0 %>% ggplot() +
+  geom_histogram(aes(x = abs(value - true_d2_d1_0), fill = variable), alpha = I(.3))
+
+
+
+
+
 
