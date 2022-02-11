@@ -64,7 +64,7 @@ delta2_test <- (d_test[,2] > 0) %>%as.numeric()
 
 
 
-hypers <- Hypers(W,delta1, delta2)
+hypers <- Hypers(W,delta1, delta2, num_tree = 100)
 
 #BART with shared forest model
 sb <- SharedBartBinary(W = W,
