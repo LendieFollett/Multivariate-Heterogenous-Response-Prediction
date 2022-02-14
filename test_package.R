@@ -22,7 +22,7 @@ P = 150
 n_train = 500
 n_test = 250
 rho <- 0.0 #Note: shared bart assumes Z1, Z2 are independent GIVEN the Xs
-nrep <- 100
+nrep <- 10
 d <- array(NA, dim = c(n_train, 2))
 d_test <- array(NA, dim = c(n_test, 2))
 Sigma <-rho*(1-diag(2)) + diag (2)
@@ -34,7 +34,7 @@ sigma_theta2 <- 4
 
 
 f_fun1 <- function(W){10*sin(pi*W[,1]*W[,2]) + 20*(W[,3]- 0.5)^2 + 10*W[,4] + 5*W[,5]}
-f_fun2 <- function(W){5*sin(pi*W[,1]*W[,2]) + 25*(W[,3]- 0.5)^2 + 5*W[,4] + 5*W[,5]}
+f_fun2 <- function(W){5*sin(pi*W[,1]*W[,2]) + 25*(W[,3]- 0.5)^2 + 5*W[,4] + 10*W[,5]}
 g0 <- function(x){as.numeric(x > 0)}
 m_mean <- function(x){as.numeric(x - mean(x))}
 
@@ -116,7 +116,7 @@ b2.2 <- gbart(x.train =W[delta1 == 1,],
 rf1 <- randomForest(x = W,
                     y = as.factor(delta1 ))
 predicted_class <- predict(object = rf1, newdata = W_test, type = "class")
-rf_idx0 <- which(predicted_class == "FALSE")
+rf_idx0 <- which(predicted_class == "0")
 
 #train on delta1 == 0 sample
 rf2.1 <- randomForest(x = W[delta1 == 0,],
@@ -131,9 +131,9 @@ rf2.2 <- randomForest(x = W[delta1 == 1,],
 
 
 #Random forest estimated P(d2 = 1 | d1)
-rf_d1_pred <- ifelse(predict(object = rf1, newdata = W_test, type = "class") == TRUE, 1, 0)
-rf_d2_pred_d1_0 <- ifelse(predict(object = rf2.1, newdata = W_test[rf_idx0,], type = "class") == TRUE, 1, 0)
-rf_d2_pred_d1_1 <- ifelse(predict(object = rf2.2, newdata = W_test[-rf_idx0,], type = "class") == TRUE, 1, 0)
+rf_d1_pred <- ifelse(predict(object = rf1, newdata = W_test, type = "class") == "1", 1, 0)
+rf_d2_pred_d1_0 <- ifelse(predict(object = rf2.1, newdata = W_test[rf_idx0,], type = "class") == "1", 1, 0)
+rf_d2_pred_d1_1 <- ifelse(predict(object = rf2.2, newdata = W_test[-rf_idx0,], type = "class") == "1", 1, 0)
 #bart estimated  P(d2 = 1 | d1)
 b_d1_pred <- ifelse(pnorm(b1$yhat.test%>%apply(2, mean))> 0.5, 1, 0)
 b_d2_pred_d1_0 <- ifelse(pnorm(b2.1$yhat.test%>%apply(2, mean))> 0.5, 1, 0)

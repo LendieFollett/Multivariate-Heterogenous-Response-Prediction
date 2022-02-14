@@ -49,15 +49,14 @@ opts <- Opts(num_burn = 5000, num_thin = 1, num_save = 5000, num_print = 1000)
   
   
   for (i in 1:n_train){d[i,] <- mvrnorm(n = 1, mu=means[i,], Sigma = Sigma)}
-  delta1 <- d[,1] > 0 %>%as.numeric()#rbinom(n = n_train, size = 1, prob = (1 + exp(-1.5*W[,1]))^(-1))
-  delta2 <- d[,2] > 0 %>%as.numeric()#rbinom(n = n_train, size = 1, prob = (1 + exp(-1.5*W[,2]))^(-1))
+  delta1 <- ifelse(d[,1] > 0,1,0)
+  delta2 <- ifelse(d[,2] > 0,1,0)
   
-  plot(d)
   cor(delta1, delta2)
   
   for (i in 1:n_test){d_test[i,] <- mvrnorm(n = 1, mu=means_test[i,], Sigma = Sigma)}
-  delta1_test <- (d_test[,1] > 0) %>%as.numeric()#rbinom(n = n_train, size = 1, prob = (1 + exp(-1.5*W[,1]))^(-1))
-  delta2_test <- (d_test[,2] > 0) %>%as.numeric()
+  delta1_test <- ifelse(d_test[,1] > 0,1,0)
+  delta2_test <- ifelse(d_test[,2] > 0,1,0)
   
   
   
