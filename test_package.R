@@ -22,18 +22,19 @@ P = 150
 n_train = 500
 n_test = 250
 rho <- 0.0 #Note: shared bart assumes Z1, Z2 are independent GIVEN the Xs
-nrep <- 10
+nrep <- 100
 d <- array(NA, dim = c(n_train, 2))
 d_test <- array(NA, dim = c(n_test, 2))
 Sigma <-rho*(1-diag(2)) + diag (2)
 
 
 #see Section 4. Simulation Study in Linero paper
-sigma_theta1 <- 5
-sigma_theta2 <- -5
+sigma_theta1 <- 4
+sigma_theta2 <- 4
 
 
-f_fun <- function(W){10*sin(pi*W[,1]*W[,2]) + 20*(W[,3]- 0.5)^2 + 10*W[,4] + 5*W[,5]}
+f_fun1 <- function(W){10*sin(pi*W[,1]*W[,2]) + 20*(W[,3]- 0.5)^2 + 10*W[,4] + 5*W[,5]}
+f_fun2 <- function(W){5*sin(pi*W[,1]*W[,2]) + 25*(W[,3]- 0.5)^2 + 5*W[,4] + 5*W[,5]}
 g0 <- function(x){as.numeric(x > 0)}
 m_mean <- function(x){as.numeric(x - mean(x))}
 
@@ -48,19 +49,19 @@ print(paste0("************* Repetition = ", r, " *************"))
 W <- matrix(runif(P*n_train), ncol = P)
 W_test <- matrix(runif(P*n_test), ncol = P)
 
-means <- c(rep(sigma_theta1, n_train), rep(sigma_theta2, n_train))*(cbind(f_fun(W), f_fun(W))/20-0.7) #%>% apply(2, m_mean)
-means_test <-  c(rep(sigma_theta1, n_test), rep(sigma_theta2, n_test))*(cbind(f_fun(W_test), f_fun(W_test))/20-0.7)#%>% apply(2, m_mean)
+means <- c(rep(sigma_theta1, n_train), rep(sigma_theta2, n_train))*(cbind(f_fun1(W), f_fun2(W))/20-0.7) #%>% apply(2, m_mean)
+means_test <-  c(rep(sigma_theta1, n_test), rep(sigma_theta2, n_test))*(cbind(f_fun1(W_test), f_fun2(W_test))/20-0.7)#%>% apply(2, m_mean)
 
 
 for (i in 1:n_train){d[i,] <- mvrnorm(n = 1, mu=means[i,], Sigma = Sigma)}
-delta1 <- d[,1] > 0 %>%as.numeric()#rbinom(n = n_train, size = 1, prob = (1 + exp(-1.5*W[,1]))^(-1))
-delta2 <- d[,2] > 0 %>%as.numeric()#rbinom(n = n_train, size = 1, prob = (1 + exp(-1.5*W[,2]))^(-1))
+delta1 <- ifelse(d[,1] > 0,1,0)
+delta2 <- ifelse(d[,2] > 0,1,0)
 
 cor(delta1, delta2)
 
 for (i in 1:n_test){d_test[i,] <- mvrnorm(n = 1, mu=means_test[i,], Sigma = Sigma)}
-delta1_test <- (d_test[,1] > 0) %>%as.numeric()#rbinom(n = n_train, size = 1, prob = (1 + exp(-1.5*W[,1]))^(-1))
-delta2_test <- (d_test[,2] > 0) %>%as.numeric()
+delta1_test <- ifelse(d_test[,1] > 0,1,0)
+delta2_test <- ifelse(d_test[,2] > 0,1,0)
 
 
 
@@ -76,9 +77,9 @@ sb <- SharedBartBinary(W = W,
 
 
 #dirichlet probability posterior means - should pick out most important
-s_hat <- sb$s %>%apply(2, mean)
-ggplot() + geom_bar(aes(x = 1:ncol(W), y = s_hat), stat = "identity") +
-  labs(x = "Variable", y = "Inclusion Probability (s-hat)") + scale_x_continuous(breaks = c(1:ncol(W)))
+#s_hat <- sb$s %>%apply(2, mean)
+#ggplot() + geom_bar(aes(x = 1:ncol(W), y = s_hat), stat = "identity") +
+#  labs(x = "Variable", y = "Inclusion Probability (s-hat)") + scale_x_continuous(breaks = c(1:ncol(W)))
 
 
 
@@ -166,19 +167,15 @@ fitmatd <- do.call(rbind, fitmat)
 fitmatd_long0 <- fitmatd[,c(1,3,5,7)] %>% melt(id.vars = c(1))
 fitmatd_long1 <- fitmatd[,c(2,4,6,8)] %>% melt(id.vars = c(1))
 
-fitmatd_long0 %>% ggplot() + geom_point(aes(x = true_d2_d1_0, y = value)) +
-  facet_grid(~variable) +
-  geom_abline(aes(intercept = 0, slope = 1)) + xlim(0, 1)+ ylim(0, 1) +ggtitle("P(d2 = 1 | d1 = 0)")
-
-fitmatd_long1 %>% ggplot() + geom_point(aes(x = true_d2_d1_1, y = value)) +
-  facet_wrap(~variable)+
-  geom_abline(aes(intercept = 0, slope = 1))+ xlim(0,1)+ ylim(0, 1)+ggtitle("P(d2 = 1 | d1 = 1)")
-
 fitmatd_long0 %>% group_by(variable) %>% summarise(mse = mean((true_d2_d1_0 - value)^2))
 fitmatd_long1 %>% group_by(variable) %>% summarise(mse = mean((true_d2_d1_1 - value)^2))
 
 fitmatd_long0 %>% ggplot() +
   geom_histogram(aes(x = abs(value - true_d2_d1_0), fill = variable), alpha = I(.3))
+
+
+fitmatd_long1 %>% ggplot() +
+  geom_histogram(aes(x = abs(value - true_d2_d1_1), fill = variable), alpha = I(.3))
 
 
 
