@@ -175,13 +175,14 @@ fitmatd_long0 %>% group_by(variable) %>% summarise(mse = mean((true_d2_d1_0 - va
 fitmatd_long1 %>% group_by(variable) %>% summarise(mse = mean((true_d2_d1_1 - value)^2))
 
 fitmatd_long0 %>% ggplot() +
-  geom_density(aes(x = abs(value - true_d2_d1_0), fill = variable), alpha = I(.3), position = "dodge") +
-  labs(x = "Absolute Error")
+  geom_density(aes(x = abs(value - true_d2_d1_0), fill = variable, linetype = variable), alpha = I(.3), position = "dodge") +
+  labs(x = "Absolute Error") +
+  scale_fill_manual(values=c("grey10","grey40", "grey90")) + theme_bw()
 
 fitmatd_long1 %>% ggplot() +
-  geom_density(aes(x = abs(value - true_d2_d1_1), fill = variable), alpha = I(.3))+
-  labs(x = "Absolute Error")
-
+  geom_density(aes(x = abs(value - true_d2_d1_1), fill = variable, linetype = variable), alpha = I(.3))+
+  labs(x = "Absolute Error")+
+  scale_fill_manual(values=c("grey10","grey40", "grey90")) + theme_bw()
 
 
 
