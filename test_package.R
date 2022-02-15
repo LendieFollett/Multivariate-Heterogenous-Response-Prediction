@@ -22,7 +22,7 @@ P = 150
 n_train = 500
 n_test = 250
 rho <- 0.0 #Note: shared bart assumes Z1, Z2 are independent GIVEN the Xs
-nrep <- 10
+nrep <- 100
 d <- array(NA, dim = c(n_train, 2))
 d_test <- array(NA, dim = c(n_test, 2))
 Sigma <-rho*(1-diag(2)) + diag (2)
@@ -164,18 +164,23 @@ fitmatd <- do.call(rbind, fitmat)
 #fitmatd <-  fitmatd %>% mutate_at(vars(matches("pred")),as.character)
 #fitmatd <-  fitmatd %>% mutate_at(vars(matches("pred")),as.numeric)
 
-fitmatd_long0 <- fitmatd[,c(1,3,5,7)] %>% melt(id.vars = c(1))
-fitmatd_long1 <- fitmatd[,c(2,4,6,8)] %>% melt(id.vars = c(1))
+fitmatd_long0 <- fitmatd[,c(1,3,5,7)] %>% melt(id.vars = c(1)) %>%
+  mutate(variable = factor(variable, levels = c("rf_d2_pred_d1_0","b_d2_pred_d1_0","sb_d2_pred_d1_0"),
+                           labels = c("Random Forest", "BART", "Shared Forest")))
+fitmatd_long1 <- fitmatd[,c(2,4,6,8)] %>% melt(id.vars = c(1))%>%
+  mutate(variable = factor(variable, levels = c("rf_d2_pred_d1_1","b_d2_pred_d1_1","sb_d2_pred_d1_1"),
+                           labels = c("Random Forest", "BART", "Shared Forest")))
 
 fitmatd_long0 %>% group_by(variable) %>% summarise(mse = mean((true_d2_d1_0 - value)^2))
 fitmatd_long1 %>% group_by(variable) %>% summarise(mse = mean((true_d2_d1_1 - value)^2))
 
 fitmatd_long0 %>% ggplot() +
-  geom_histogram(aes(x = abs(value - true_d2_d1_0), fill = variable), alpha = I(.3))
-
+  geom_density(aes(x = abs(value - true_d2_d1_0), fill = variable), alpha = I(.3), position = "dodge") +
+  labs(x = "Absolute Error")
 
 fitmatd_long1 %>% ggplot() +
-  geom_histogram(aes(x = abs(value - true_d2_d1_1), fill = variable), alpha = I(.3))
+  geom_density(aes(x = abs(value - true_d2_d1_1), fill = variable), alpha = I(.3))+
+  labs(x = "Absolute Error")
 
 
 
