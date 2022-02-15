@@ -12,7 +12,7 @@ library(randomForest)
 library(reshape2)
 
 # Set file path
-out = "/Users/hendersonhl/Documents/Articles/Multivariate/Heterogeneous-Response-Prediction"
+out = "/Users/hendersonhl/Documents/Articles/Multivariate-Heterogenous-Response-Prediction"
 
 # Set parameters
 P = 150
@@ -110,7 +110,9 @@ fitmatd <- do.call(rbind, fitmat)
 path <- paste0(out, "/continuous_sims.csv")
 write.csv(fitmatd, path, row.names = FALSE)
 
-# Organize results
+# Import results and organize for plotting
+path <- paste0(out, "/continuous_sims.csv")
+fitmatd <- read.csv(path)
 delta_0_se <- (fitmatd$sb_y_pred_delta_0 - fitmatd$true_y_delta_0)^2 # Shared forest squared errors
 delta_1_se <- (fitmatd$sb_y_pred_delta_1 - fitmatd$true_y_delta_1)^2
 model <- c(rep("SF", length(fitmat)))
