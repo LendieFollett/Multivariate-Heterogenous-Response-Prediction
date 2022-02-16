@@ -17,18 +17,18 @@ out = "/Users/hendersonhl/Documents/Articles/Multivariate-Heterogenous-Response-
 # Set parameters
 P = 150
 n_train = 500
-n_test = 500
+n_test = 250
 rho <- 0.0 
 nrep <- 100
 d <- array(NA, dim = c(n_train, 2))
 d_test <- array(NA, dim = c(n_test, 2))
 Sigma <-rho*(1-diag(2)) + diag (2)
-sigma_theta1 <- 5
-sigma_theta2 <- 5
+sigma_theta1 <- 1   # Removes scaling for continuous outcome
+sigma_theta2 <- 4
 
 # Define helper functions
 f_fun1 <- function(W){10*sin(pi*W[,1]*W[,2]) + 20*(W[,3]- 0.5)^2 + 10*W[,4] + 5*W[,5]}
-f_fun2 <- function(W){5*sin(pi*W[,1]*W[,2]) + 10*(W[,3]- 0.5)^2 + 20*W[,4] - 10*W[,5]}
+f_fun2 <- function(W){5*sin(pi*W[,1]*W[,2]) + 25*(W[,3]- 0.5)^2 + 5*W[,4] - 10*W[,5]}
 g0 <- function(x){as.numeric(x > 0)}
 m_mean <- function(x){as.numeric(x - mean(x))}
 
@@ -60,7 +60,7 @@ for(r in 1:nrep){
   delta_test <- (d_test[,2] > 0) %>% as.numeric()
   
   # Shared forest model
-  hypers <- SharedForest::Hypers(X = W, Y = Y, W = W, delta = delta)
+  hypers <- SharedForest::Hypers(X = W, Y = Y, W = W, delta = delta, num_tree = 200)
   sb  <- SharedBart(X = W, Y = Y, W = W, delta = delta, X_test = W_test, 
                             W_test = W_test, hypers_ = hypers, opts_ = opts)
   
