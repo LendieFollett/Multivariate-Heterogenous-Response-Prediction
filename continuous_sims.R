@@ -15,21 +15,36 @@ library(reshape2)
 out = "/Users/hendersonhl/Documents/Articles/Multivariate-Heterogenous-Response-Prediction"
 out = "/Users/000766412/OneDrive - Drake University/Documents/GitHub/Multivariate-Heterogenous-Response-Prediction"
 # Set parameters
+
 P = 50
 n_train = 250
 n_test = 250
 rho <- 0.0
+
+P = 150
+n_train = 500
+n_test = 250
+rho <- 0.0
+
 nrep <- 100
 d <- array(NA, dim = c(n_train, 2))
 d_test <- array(NA, dim = c(n_test, 2))
 Sigma <-rho*(1-diag(2)) + diag (2)
+
 sigma_theta <- 5
 
+
+sigma_theta1 <- 1   # Removes scaling for continuous outcome
+sigma_theta2 <- 4
 
 # Define helper functions
 
 f_fun1 <- function(W){10*sin(pi*W[,1]*W[,2]) + 20*(W[,3]- 0.5)^2 + 10*W[,4] + 5*W[,5]}
+
 f_fun2 <- function(W){5*sin(pi*W[,1]*W[,2]) + 25*(W[,3]- 0.5)^2 + 5*W[,4] + 10*W[,5]}
+
+f_fun2 <- function(W){5*sin(pi*W[,1]*W[,2]) + 25*(W[,3]- 0.5)^2 + 5*W[,4] - 10*W[,5]}
+
 g0 <- function(x){as.numeric(x > 0)}
 m_mean <- function(x){as.numeric(x - mean(x))}
 
@@ -62,8 +77,9 @@ for(r in 1:nrep){
 
   # Shared forest model
   hypers <- SharedForest::Hypers(X = W, Y = Y, W = W, delta = delta, num_tree = 200)
+
   sb  <- SharedBart(X = W, Y = Y, W = W, delta = delta, X_test = W_test,
-                            W_test = W_test, hypers_ = hypers, opts_ = opts)
+                         W_test = W_test, hypers_ = hypers, opts_ = opts)
   #s_hat <- sb$s %>%apply(2, mean)
   #ggplot() + geom_bar(aes(x = 1:ncol(W), y = s_hat), stat = "identity") +
   #  labs(x = "Variable", y = "Inclusion Probability (s-hat)") + scale_x_continuous(breaks = c(1:ncol(W)))
