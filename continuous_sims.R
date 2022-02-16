@@ -145,11 +145,11 @@ path <- paste0(out, "/continuous_sims.csv")
 fitmatd <- read.csv(path)
 delta_0_se <- (fitmatd$sb_y_pred_delta_0 - fitmatd$true_y_delta_0)^2 # Shared forest squared errors
 delta_1_se <- (fitmatd$sb_y_pred_delta_1 - fitmatd$true_y_delta_1)^2
-model <- c(rep("SF", length(fitmat)))
+model <- c(rep("SF", nrow(fitmatd)))
 sbse <- data.frame(delta_0_se, delta_1_se, model)
 delta_0_se <- (fitmatd$b_y_pred_delta_0 - fitmatd$true_y_delta_0)^2  # BART squared errors
 delta_1_se <- (fitmatd$b_y_pred_delta_1 - fitmatd$true_y_delta_1)^2
-model <- c(rep("BART", length(fitmat)))
+model <- c(rep("BART", nrow(fitmatd)))
 bse <- data.frame(delta_0_se, delta_1_se, model)
 results <- rbind(sbse, bse)  # Combine all results
 
