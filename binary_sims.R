@@ -161,12 +161,14 @@ fitmat[[r]] <- fm
 }
 
 fitmatd <- do.call(rbind, fitmat)
+write.csv(fitmatd, "/Users/000766412/OneDrive - Drake University/Documents/GitHub/Multivariate-Heterogenous-Response-Prediction/binary_sims.csv")
 #fitmatd <-  fitmatd %>% mutate_at(vars(matches("pred")),as.character)
 #fitmatd <-  fitmatd %>% mutate_at(vars(matches("pred")),as.numeric)
 
 fitmatd_long0 <- fitmatd[,c(1,3,5,7)] %>% melt(id.vars = c(1)) %>%
   mutate(variable = factor(variable, levels = c("rf_d2_pred_d1_0","b_d2_pred_d1_0","sb_d2_pred_d1_0"),
                            labels = c("Random Forest", "BART", "Shared Forest")))
+
 fitmatd_long1 <- fitmatd[,c(2,4,6,8)] %>% melt(id.vars = c(1))%>%
   mutate(variable = factor(variable, levels = c("rf_d2_pred_d1_1","b_d2_pred_d1_1","sb_d2_pred_d1_1"),
                            labels = c("Random Forest", "BART", "Shared Forest")))
