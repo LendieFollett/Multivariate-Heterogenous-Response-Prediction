@@ -1,5 +1,6 @@
 # Import packages
 rm(list = ls())
+#remove.packages("SharedForest")
 #library(devtools)
 #install_github("theodds/SharedForestPaper/SharedForest")
 library(SharedForest)
@@ -12,7 +13,7 @@ library(randomForest)
 library(reshape2)
 
 # Set file path
-out = "/Users/hendersonhl/Documents/Articles/Multivariate-Heterogenous-Response-Prediction"
+#out = "/Users/hendersonhl/Documents/Articles/Multivariate-Heterogenous-Response-Prediction"
 out = "/Users/000766412/OneDrive - Drake University/Documents/GitHub/Multivariate-Heterogenous-Response-Prediction"
 # Set parameters
 
@@ -23,7 +24,7 @@ rho <- 0.0
 
 P = 150
 n_train = 500
-n_test = 250
+n_test = 500
 rho <- 0.0
 
 nrep <- 100
@@ -33,17 +34,10 @@ Sigma <-rho*(1-diag(2)) + diag (2)
 
 sigma_theta <- 5
 
-
-sigma_theta1 <- 1   # Removes scaling for continuous outcome
-sigma_theta2 <- 4
-
 # Define helper functions
 
 f_fun1 <- function(W){10*sin(pi*W[,1]*W[,2]) + 20*(W[,3]- 0.5)^2 + 10*W[,4] + 5*W[,5]}
-
 f_fun2 <- function(W){5*sin(pi*W[,1]*W[,2]) + 25*(W[,3]- 0.5)^2 + 5*W[,4] + 10*W[,5]}
-
-f_fun2 <- function(W){5*sin(pi*W[,1]*W[,2]) + 25*(W[,3]- 0.5)^2 + 5*W[,4] - 10*W[,5]}
 
 g0 <- function(x){as.numeric(x > 0)}
 m_mean <- function(x){as.numeric(x - mean(x))}
@@ -62,17 +56,19 @@ for(r in 1:nrep){
   W_test <- matrix(runif(P*n_test), ncol = P)
 
   # Generate expected values
-  means <- cbind(f_fun1(W), sigma_theta*(f_fun2(W)/20 - 0.7))
+  means <-       cbind(f_fun1(W),      sigma_theta*(f_fun2(W)/20 - 0.7))
   means_test <-  cbind(f_fun1(W_test), sigma_theta*(f_fun2(W_test)/20 - 0.7))
 
   # Generate training outcomes
   for (i in 1:n_train){d[i,] <- mvrnorm(n = 1, mu = means[i,], Sigma = Sigma)}
-  Y <- d[,1]#scale(d[,1])
+  Y <- (d[,1] - mean(d[,1]))/ sd(d[,1])
   delta <- ifelse(d[,2] > 0, 1, 0)
 
   # Generate testing outcomes
   for (i in 1:n_test){d_test[i,] <- mvrnorm(n = 1, mu = means_test[i,], Sigma = Sigma)}
-  Y_test <- d_test[,1]#scale(d_test[,1])
+  # Standardize using training summary statistics
+  # (Predicting how many training sd's above or below training mean test set obs falls)
+  Y_test <- (d_test[,1] - mean(d[,1]))/ sd(d[,1])
   delta_test <- ifelse(d_test[,2] > 0, 1, 0)
 
   # Shared forest model
