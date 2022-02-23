@@ -163,6 +163,10 @@ results %>% group_by(model) %>% summarize(mean = mean(delta_1_se))
 summary(fitmatd[,c(7,8)])
 
 
+#####################################
+
+
+
 fitmatd_long0 <- fitmatd[,c(1,3,5)] %>% melt(id.vars = c(1)) %>%
   mutate(variable = factor(variable, levels = c("b_y_pred_delta_0","sb_y_pred_delta_0"),
                            labels = c( "BART", "Shared Forest")))
@@ -170,6 +174,13 @@ fitmatd_long0 <- fitmatd[,c(1,3,5)] %>% melt(id.vars = c(1)) %>%
 fitmatd_long1 <- fitmatd[,c(2,4,6)] %>% melt(id.vars = c(1))%>%
   mutate(variable = factor(variable, levels = c("b_y_pred_delta_1","sb_y_pred_delta_1"),
                            labels = c( "BART", "Shared Forest")))
+
+ggplot(data = fitmatd_long0) +
+  geom_point(aes(x = true_y_delta_0, y = value, colour = variable)) +
+  geom_abline(aes(intercept = 0, slope = 1))
+ggplot(data = fitmatd_long1) +
+  geom_point(aes(x = true_y_delta_1, y = value, colour = variable)) +
+  geom_abline(aes(intercept = 0, slope = 1))
 
 fitmatd_long0 %>% group_by(variable) %>% summarise(mse = mean((true_y_delta_0 - value)^2))
 fitmatd_long1 %>% group_by(variable) %>% summarise(mse = mean((true_y_delta_1 - value)^2))
