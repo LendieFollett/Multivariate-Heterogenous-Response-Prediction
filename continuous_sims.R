@@ -163,3 +163,27 @@ results %>% group_by(model) %>% summarize(mean = mean(delta_1_se))
 summary(fitmatd[,c(7,8)])
 
 
+fitmatd_long0 <- fitmatd[,c(1,3,5)] %>% melt(id.vars = c(1)) %>%
+  mutate(variable = factor(variable, levels = c("b_y_pred_delta_0","sb_y_pred_delta_0"),
+                           labels = c( "BART", "Shared Forest")))
+
+fitmatd_long1 <- fitmatd[,c(2,4,6)] %>% melt(id.vars = c(1))%>%
+  mutate(variable = factor(variable, levels = c("b_y_pred_delta_1","sb_y_pred_delta_1"),
+                           labels = c( "BART", "Shared Forest")))
+
+fitmatd_long0 %>% group_by(variable) %>% summarise(mse = mean((true_y_delta_0 - value)^2))
+fitmatd_long1 %>% group_by(variable) %>% summarise(mse = mean((true_y_delta_1 - value)^2))
+
+
+fitmatd_long0 %>% ggplot() +
+  geom_density(aes(x = abs(value - true_y_delta_0), fill = variable, linetype = variable), alpha = I(.3)) +
+  labs(x = "Absolute Error") +
+  scale_fill_manual(values=c("grey10","grey40", "grey90")) + theme_bw()
+
+fitmatd_long1 %>% ggplot() +
+  geom_density(aes(x = abs(value - true_y_delta_1), fill = variable, linetype = variable), alpha = I(.3))+
+  labs(x = "Absolute Error")+
+  scale_fill_manual(values=c("grey10","grey40", "grey90")) + theme_bw()
+
+
+
