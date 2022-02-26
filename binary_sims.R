@@ -17,12 +17,14 @@ library(caret)
 library(randomForest)
 library(reshape2)
 
+out <- "/Users/000766412/OneDrive - Drake University/Documents/GitHub/Multivariate-Heterogenous-Response-Prediction/"
+
 #"s the variable selection task becomes more difficult, the model which does not share information is far more sensitive to irrelevant predictors than the model which does share"
 P = 150
 n_train = 500
 n_test = 250
 rho <- 0.0 #Note: shared bart assumes Z1, Z2 are independent GIVEN the Xs
-nrep <- 100
+nrep <- 25
 d <- array(NA, dim = c(n_train, 2))
 d_test <- array(NA, dim = c(n_test, 2))
 Sigma <-rho*(1-diag(2)) + diag (2)
@@ -35,14 +37,13 @@ sigma_theta2 <- 4
 
 f_fun1 <- function(W){10*sin(pi*W[,1]*W[,2]) + 20*(W[,3]- 0.5)^2 + 10*W[,4] + 5*W[,5]}
 f_fun2 <- function(W){5*sin(pi*W[,1]*W[,2]) + 25*(W[,3]- 0.5)^2 + 5*W[,4] + 10*W[,5]}
-g0 <- function(x){as.numeric(x > 0)}
-m_mean <- function(x){as.numeric(x - mean(x))}
 
 opts <- Opts(num_burn = 5000, num_thin = 1, num_save = 5000, num_print = 1000)
 
 fitmat <- list()
 
-
+oreps <- c(1:4)
+results <-  mclapply(oreps, function(overall_reps){
 for(r in 1:nrep){
 print(paste0("************* Repetition = ", r, " *************"))
 
@@ -80,7 +81,6 @@ sb <- SharedBartBinary(W = W,
 #s_hat <- sb$s %>%apply(2, mean)
 #ggplot() + geom_bar(aes(x = 1:ncol(W), y = s_hat), stat = "identity") +
 #  labs(x = "Variable", y = "Inclusion Probability (s-hat)") + scale_x_continuous(breaks = c(1:ncol(W)))
-
 
 
 #two individual BART models
@@ -134,37 +134,45 @@ rf2.2 <- randomForest(x = W[delta1 == 1,],
 rf_d1_pred <- ifelse(predict(object = rf1, newdata = W_test, type = "class") == "1", 1, 0)
 rf_d2_pred_d1_0 <- ifelse(predict(object = rf2.1, newdata = W_test[rf_idx0,], type = "class") == "1", 1, 0)
 rf_d2_pred_d1_1 <- ifelse(predict(object = rf2.2, newdata = W_test[-rf_idx0,], type = "class") == "1", 1, 0)
+
+
 #bart estimated  P(d2 = 1 | d1)
 b_d1_pred <- ifelse(pnorm(b1$yhat.test%>%apply(2, mean))> 0.5, 1, 0)
 b_d2_pred_d1_0 <- ifelse(pnorm(b2.1$yhat.test%>%apply(2, mean))> 0.5, 1, 0)
 b_d2_pred_d1_1 <- ifelse(pnorm(b2.2$yhat.test%>%apply(2, mean))> 0.5, 1, 0)
-#Shared bart estimated  P(d1 = 1), P(d2 = 1)
-sb_d1_pred <- ifelse(pnorm(sb$theta_hat_test1 %>% apply(2, mean)) > 0.5, 1, 0)
-sb_d2_pred <- ifelse(pnorm(sb$theta_hat_test2 %>% apply(2, mean)) > 0.5, 1, 0)
+
+# Shared BART predictions
+delta_star <- (sb$theta_hat_test1 %>%
+                 apply(1:2, function(x){rbinom(n = 1, size = 1, prob = pnorm(x))}))
+#estimated P(delta2 = 1 | delta1 = 1)
+sb_y_pred1 <- mean(apply(delta_star*sb$theta_hat_test2, 1, sum) / apply(delta_star, 1, sum)) %>% pnorm()
+#estimated P(delta2 = 1 | delta1 = 0)
+sb_y_pred0 <- mean(apply((1-delta_star)*sb$theta_hat_test2, 1, sum) / apply((1-delta_star), 1, sum)) %>% pnorm()
+
 
 #True/observed  P(d2 = 1 | d1) in test set
-
 fm<- data.frame(true_d2_d1_0 = mean(delta2_test[delta1_test == 0]),
                 true_d2_d1_1 = mean(delta2_test[delta1_test == 1]),
                 rf_d2_pred_d1_0 = mean(rf_d2_pred_d1_0),
                 rf_d2_pred_d1_1 = mean(rf_d2_pred_d1_1),
                 b_d2_pred_d1_0 = mean(b_d2_pred_d1_0),
                 b_d2_pred_d1_1 = mean(b_d2_pred_d1_1),
-                sb_d2_pred_d1_0 = mean(sb_d2_pred[sb_d1_pred == 0]),
-                sb_d2_pred_d1_1 = mean(sb_d2_pred[sb_d1_pred == 1]))
-#fm <-  fm %>% mutate_at(vars(matches("pred")),as.factor)
+                sb_d2_pred_d1_0 = sb_y_pred0,
+                sb_d2_pred_d1_1 = sb_y_pred1)
 
 fitmat[[r]] <- fm
 
-
-
 }
+  return(fitmat)
+}, mc.cores = length(oreps))
 
 fitmatd <- do.call(rbind, fitmat)
-write.csv(fitmatd, "/Users/000766412/OneDrive - Drake University/Documents/GitHub/Multivariate-Heterogenous-Response-Prediction/binary_sims.csv")
+write.csv(fitmatd, paste0(out, "/binary_sims.csv"), row.names=FALSE)
 #fitmatd <-  fitmatd %>% mutate_at(vars(matches("pred")),as.character)
 #fitmatd <-  fitmatd %>% mutate_at(vars(matches("pred")),as.numeric)
 
+
+fitmatd <- read.csv(paste0(out, "/binary_sims.csv"))
 fitmatd_long0 <- fitmatd[,c(1,3,5,7)] %>% melt(id.vars = c(1)) %>%
   mutate(variable = factor(variable, levels = c("rf_d2_pred_d1_0","b_d2_pred_d1_0","sb_d2_pred_d1_0"),
                            labels = c("Random Forest", "BART", "Shared Forest")))
@@ -176,17 +184,21 @@ fitmatd_long1 <- fitmatd[,c(2,4,6,8)] %>% melt(id.vars = c(1))%>%
 fitmatd_long0 %>% group_by(variable) %>% summarise(mse = mean((true_d2_d1_0 - value)^2))
 fitmatd_long1 %>% group_by(variable) %>% summarise(mse = mean((true_d2_d1_1 - value)^2))
 
-fitmatd_long0 %>% ggplot() +
-  geom_density(aes(x = abs(value - true_d2_d1_0), fill = variable, linetype = variable), alpha = I(.3), position = "dodge") +
-  labs(x = "Absolute Error") +
-  scale_fill_manual(values=c("grey10","grey40", "grey90")) + theme_bw()
+p0 <- fitmatd_long0 %>% ggplot() +
+  geom_density(aes(x = (value - true_d2_d1_0)^2, fill = variable, linetype = variable), alpha = I(.3)) +
+  labs(x = "Squared Error") +
+  scale_linetype("Model")+
+  scale_fill_manual("Model",values=c("grey10","grey40", "grey90")) + theme_bw() +
+  ggtitle("delta[1] = 0")
 
-fitmatd_long1 %>% ggplot() +
-  geom_density(aes(x = abs(value - true_d2_d1_1), fill = variable, linetype = variable), alpha = I(.3))+
-  labs(x = "Absolute Error")+
-  scale_fill_manual(values=c("grey10","grey40", "grey90")) + theme_bw()
-
-
+p1 <- fitmatd_long1 %>% ggplot() +
+  geom_density(aes(x = (value - true_d2_d1_1)^2, fill = variable, linetype = variable), alpha = I(.3))+
+  labs(x = "Squared Error")+
+  scale_linetype("Model")+
+  scale_fill_manual("Model",values=c("grey10","grey40", "grey90")) + theme_bw()+
+  ggtitle("delta[1] = 1")
+p <- grid.arrange(p0, p1, nrow = 2)
+ggsave(paste0(out, "/binary_sim_results.pdf"), plot = p)
 
 
 

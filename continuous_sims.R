@@ -202,34 +202,12 @@ fitmatd_long1 <- fitmatd[,c(2,4,6)] %>% melt(id.vars = c(1))%>%
   mutate(variable = factor(variable, levels = c("b_y_pred_delta_1","sb_y_pred_delta_1"),
                            labels = c( "BART", "Shared Forest")))
 
-ggplot(data = fitmatd_long0) +
-  geom_point(aes(x = true_y_delta_0, y = value, colour = variable)) +
-  geom_abline(aes(intercept = 0, slope = 1))
-
-ggplot(data = fitmatd_long1) +
-  geom_point(aes(x = true_y_delta_1, y = value, colour = variable)) +
-  geom_abline(aes(intercept = 0, slope = 1))
-
 fitmatd_long1 %>%
   rename(true_y_delta_0 = true_y_delta_1)%>%
 rbind( fitmatd_long0)  %>%
   ggplot() +geom_point(aes(x = true_y_delta_0, y = value, colour = variable)) +
   geom_abline(aes(intercept = 0, slope = 1))
 
-
-fitmatd_long0 %>% group_by(variable) %>% summarise(mse = mean((true_y_delta_0 - value)^2))
-fitmatd_long1 %>% group_by(variable) %>% summarise(mse = mean((true_y_delta_1 - value)^2))
-
-
-fitmatd_long0 %>% ggplot() +
-  geom_density(aes(x = abs(value - true_y_delta_0), fill = variable, linetype = variable), alpha = I(.3)) +
-  labs(x = "Absolute Error") +
-  scale_fill_manual(values=c("grey10","grey40", "grey90")) + theme_bw()
-
-fitmatd_long1 %>% ggplot() +
-  geom_density(aes(x = abs(value - true_y_delta_1), fill = variable, linetype = variable), alpha = I(.3))+
-  labs(x = "Absolute Error")+
-  scale_fill_manual(values=c("grey10","grey40", "grey90")) + theme_bw()
 
 
 p1 <-  ggplot() +
