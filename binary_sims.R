@@ -22,7 +22,7 @@ out <- "/Users/000766412/OneDrive - Drake University/Documents/GitHub/Multivaria
 #"s the variable selection task becomes more difficult, the model which does not share information is far more sensitive to irrelevant predictors than the model which does share"
 P = 150
 n_train = 500
-n_test = 250
+n_test = 500
 rho <- 0.0 #Note: shared bart assumes Z1, Z2 are independent GIVEN the Xs
 nrep <- 25
 d <- array(NA, dim = c(n_train, 2))
@@ -126,10 +126,6 @@ rf2.2 <- randomForest(x = W[delta1 == 1,],
                       y = as.factor(delta2)[delta1 == 1])
 
 
-#Goal: predict (1) proportion of test set employed (true prop delta2 == 1) when gender = 0: P(delta2 = 1 | delta1 = 0),
-# (2) proportion of test set employed (true prop delta2 == 1) when gender = 1: P(delta2 = 1 | delta1 = 1)
-
-
 #Random forest estimated P(d2 = 1 | d1)
 rf_d1_pred <- ifelse(predict(object = rf1, newdata = W_test, type = "class") == "1", 1, 0)
 rf_d2_pred_d1_0 <- ifelse(predict(object = rf2.1, newdata = W_test[rf_idx0,], type = "class") == "1", 1, 0)
@@ -166,12 +162,15 @@ fitmat[[r]] <- fm
   return(fitmat)
 }, mc.cores = length(oreps))
 
-fitmatd <- do.call(rbind, fitmat)
+
+# Store results
+fitmatd_1 <- unlist(results, recursive = FALSE)
+fitmatd <- do.call("rbind", fitmatd_1)
+
+
 write.csv(fitmatd, paste0(out, "/binary_sims.csv"), row.names=FALSE)
-#fitmatd <-  fitmatd %>% mutate_at(vars(matches("pred")),as.character)
-#fitmatd <-  fitmatd %>% mutate_at(vars(matches("pred")),as.numeric)
 
-
+# Read in results
 fitmatd <- read.csv(paste0(out, "/binary_sims.csv"))
 fitmatd_long0 <- fitmatd[,c(1,3,5,7)] %>% melt(id.vars = c(1)) %>%
   mutate(variable = factor(variable, levels = c("rf_d2_pred_d1_0","b_d2_pred_d1_0","sb_d2_pred_d1_0"),
