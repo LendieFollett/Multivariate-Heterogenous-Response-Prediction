@@ -23,7 +23,7 @@ n_train = 500
 n_test = 500
 rho <- 0.0
 
-nrep <- 10
+nrep <- 25
 d <- array(NA, dim = c(n_train, 2))
 d_test <- array(NA, dim = c(n_test, 2))
 Sigma <-rho*(1-diag(2)) + diag (2)
@@ -39,7 +39,7 @@ g0 <- function(x){as.numeric(x > 0)}
 m_mean <- function(x){as.numeric(x - mean(x))}
 
 # Set up for simulations
-opts <- Opts(num_burn = 2500, num_thin = 1, num_save = 2500, num_print = 1000)
+opts <- Opts(num_burn = 5000, num_thin = 1, num_save = 5000, num_print = 1000)
 fitmat <- list()
 allresults <- list()
 
@@ -187,7 +187,7 @@ ggplot(results, aes(x = delta_1_se, fill = model)) +
 # Descriptive stats by group
 results %>% group_by(model) %>% summarize(mean = mean(delta_0_se))
 results %>% group_by(model) %>% summarize(mean = mean(delta_1_se))
-summary(fitmatd[,c(7,8)])
+summary(fitmatd[,c(8,9,10,11)])
 
 
 #####################################
